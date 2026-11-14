@@ -1,0 +1,824 @@
+---
+title: Service layer
+description: Business logic services and DI
+---
+# Service layer
+
+MiniShop3 uses a service layer to separate business logic from ORM models. This improves testability, reusability, and extensibility.
+
+## Architecture pattern
+
+### Separation principle
+
+In the classic approach (used in miniShop2) business logic lived in models:
+
+```php
+// miniShop2 — fat models
+class msProduct extends modResource
+{
+    public function duplicate($options = []) { /* 200+ lines of logic */ }
+    public function getPrice() { /* price calculation */ }
+    public function updateImages() { /* image handling */ }
+}
+```
+
+In MiniShop3 part of the logic moves into services. The model keeps what MODX expects from `modResource`: `duplicate()`, `getPrice()`, `getWeight()`, and image handling.
+
+```php
+class msProduct extends modResource
+{
+    public function duplicate(array $options = []) { /* product copy */ }
+}
+
+class ProductService
+{
+    public function processForDisplay(\MiniShop3\Model\msProduct $product): void { /* prepare for display */ }
+}
+```
+
+### Benefits
+
+| Aspect | Fat models | Service layer |
+| --- | --- | --- |
+| Testing | Tied to the ORM | Isolated tests |
+| Reuse | Tied to ORM | Independent services |
+| Extension | Inheritance | Replace via DI |
+| File size | 1000+ lines | 100-300 lines |
+
+::: info Compromise with MODX architecture
+MODX commonly puts business logic in models (`modResource`, `modUser`, etc.). Since some MiniShop3 models extend MODX classes (`msProduct extends modResource`), they must follow similar patterns.
+
+Therefore MiniShop3 models reference services for business logic — a pragmatic compromise for MODX ecosystem compatibility.
+:::
+
+## DI container
+
+MiniShop3 uses MODX’s built-in DI container (`$modx->services`) to register and resolve services.
+
+### Registering services
+
+```mermaid
+flowchart TD
+  boot["bootstrap.php puts a single ms3 key into the container"] --> plug["The OnMODXInit plugin asks for ms3"]
+  plug --> ctor["The MiniShop3 constructor calls ServiceRegistry::register()"]
+  ctor --> merge["Configs merge: built-in, ms3.services.php, ms3.services.d"]
+  merge --> keys["The ms3_* keys are declared in the container"]
+  keys --> lazy["The object is created on the first get()"]
+  lazy --> use["A snippet, plugin or controller receives the service"]
+```
+
+Registration happens in two steps:
+
+1. The component's `bootstrap.php` adds a single key to the container — `ms3`.
+2. The `MiniShop3` constructor calls `ServiceRegistry::register()`, and that is when the rest of the keys appear.
+
+The second step happens on its own: the component's plugin gets `ms3` on the `OnMODXInit` event at the start of every request. So by the time a snippet, a plugin or a controller runs, the keys are already there and you do not need to fetch `ms3` just to reach them.
+
+```php
+// bootstrap.php — the entry point only
+$modx->services->add('ms3', function ($c) use ($modx) {
+    return new MiniShop3\MiniShop3($modx);
+});
+```
+
+### Resolving services
+
+```php
+// Via DI container (recommended)
+$orderService = $modx->services->get('ms3_order_service');
+$authManager = $modx->services->get('ms3_auth_manager');
+$cart = $modx->services->get('ms3_cart');
+
+// Via main MiniShop3 class
+$ms3 = $modx->services->get('ms3');
+$ms3->cart->add($productId, 1);
+$ms3->order->submit();
+```
+
+### Lazy loading
+
+Services are created on the first `get()`. The next call returns the same object:
+
+```php
+// Service not created yet
+$modx->services->add('ms3_order_service', function() use ($modx) {
+    // This runs only on first get()
+    return new \MiniShop3\Services\Order\OrderService($modx);
+});
+
+// First call — create instance
+$service1 = $modx->services->get('ms3_order_service');
+
+// Second call — same instance (singleton)
+$service2 = $modx->services->get('ms3_order_service');
+// $service1 === $service2
+```
+
+### Naming convention
+
+All MiniShop3 services use the `ms3_` prefix:
+
+```php
+'ms3_order_service'      // OrderService
+'ms3_auth_manager'       // AuthManager
+'ms3_cart'               // Cart controller
+'ms3_product_image'      // ProductImageService
+```
+
+This avoids conflicts with other MODX components.
+
+## Service map
+
+### Controllers
+
+Controllers are high-level services for main store entities.
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_cart` | `Controllers\Cart\Cart` | Cart management |
+| `ms3_order` | `Controllers\Order\Order` | Checkout |
+| `ms3_customer` | `Controllers\Customer\Customer` | Customer handling |
+
+```php
+// Usage
+$ms3 = $modx->services->get('ms3');
+
+// Add to cart
+$result = $ms3->cart->add($productId, 2, ['color' => 'red']);
+
+// Submit order
+$result = $ms3->order->submit();
+
+// Get customer data
+$customer = $ms3->customer->getFields();
+```
+
+### Product services
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_product_service` | `Services\Product\ProductService` | Resource-to-product conversion, neighbor products, prepare for display |
+| `ms3_product_data_service` | `Services\Product\ProductDataService` | Product data |
+| `ms3_product_image` | `Services\Product\ProductImageService` | Images, preview (`preview_file_id`) |
+| `ms3_product_catalog` | `Services\Product\ProductCatalogService` | Headless catalog Web API (field allowlist) |
+| `ms3_product_import` | `Services\Product\Import\ProductImportService` | CSV import |
+| `ms3_product_category_tree` | `Services\Product\ProductCategoryTreeService` | Product category tree in manager |
+| `ms3_product_link_service` | `Services\Product\ProductLinkService` | Product links (mgr Vue tab) |
+| `ms3_product_facets` | `Services\Product\ProductFacetService` | Catalog facets |
+| `ms3_product_gallery_public` | `Services\Product\ProductGalleryPublicService` | Public gallery (get/list/images) |
+
+```php
+$productService = $modx->services->get('ms3_product_data_service');
+$imageService = $modx->services->get('ms3_product_image');
+```
+
+### Customer services
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_auth_manager` | `Services\Customer\AuthManager` | Authentication |
+| `ms3_register_service` | `Services\Customer\RegisterService` | Registration |
+| `ms3_email_verification_service` | `Services\Customer\EmailVerificationService` | Email verification |
+| `ms3_sms_verification_service` | `Services\Customer\SmsVerificationService` | SMS stub (method always returns error until a provider is implemented) |
+| `ms3_rate_limiter` | `Services\Customer\RateLimiter` | Rate limiting |
+| `ms3_customer_address_manager` | `Services\Customer\CustomerAddressManager` | Address management |
+| `ms3_customer_field_manager` | `Services\Customer\CustomerFieldManager` | Customer profile fields |
+| `ms3_customer_order` | `Services\Customer\CustomerOrderService` | Customer orders on frontend |
+| `ms3_customer_order_resolver` | `Services\Customer\CustomerOrderResolver` | Bind order to customer on submit |
+| `ms3_customer_duplicate_checker` | `Services\CustomerDuplicateChecker` | Duplicate check |
+| `ms3_customer_factory` | `Services\CustomerFactory` | Customer factory |
+
+```php
+// Authentication
+$authManager = $modx->services->get('ms3_auth_manager');
+$customer = $authManager->authenticate([
+    'email' => 'user@example.com',
+    'password' => 'secret123'
+]);
+
+// Create token
+$token = $authManager->createToken($customer, 'api', 86400);
+
+// Register your own provider. The package has no SMS provider class.
+$authManager->registerProvider(new CodeAuthProvider($modx));
+```
+
+```php
+use MiniShop3\Controllers\Auth\AuthProviderInterface;
+use MiniShop3\Model\msCustomer;
+use MODX\Revolution\modX;
+
+class CodeAuthProvider implements AuthProviderInterface
+{
+    public function __construct(private modX $modx)
+    {
+    }
+
+    public function authenticate(array $credentials): ?msCustomer
+    {
+        // The site's own code check. The package ships no SMS authentication provider.
+        return null;
+    }
+
+    public function getName(): string
+    {
+        return 'code';
+    }
+
+    public function supports(array $credentials): bool
+    {
+        return isset($credentials['phone'], $credentials['code']);
+    }
+}
+```
+
+### Order services
+
+::: info Facade architecture
+The `Order.php` controller is a **facade** — it keeps all public methods for backward compatibility but delegates logic to dedicated services. This lets you override parts of the logic without changing the whole controller.
+:::
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_order_service` | `Services\Order\OrderService` | Order business logic |
+| `ms3_order_draft_manager` | `Services\Order\OrderDraftManager` | Order draft CRUD |
+| `ms3_order_cost_calculator` | `Services\Order\OrderCostCalculator` | Cost calculation |
+| `ms3_order_field_manager` | `Services\Order\OrderFieldManager` | Field CRUD + validation |
+| `ms3_order_address_manager` | `Services\Order\OrderAddressManager` | Order addresses |
+| `ms3_order_user_resolver` | `Services\Order\OrderUserResolver` | MODX user resolution |
+| `ms3_order_submit_handler` | `Services\Order\OrderSubmitHandler` | Checkout |
+| `ms3_order_log` | `Services\Order\OrderLogService` | Order change log |
+| `ms3_order_status` | `Services\Order\OrderStatusService` | Status change + notifications |
+| `ms3_order_finalize` | `Services\Order\OrderFinalizeService` | Order finalization (validation, customer creation) |
+| `ms3_programmatic_order` | `Services\Order\ProgrammaticOrderService` | Order creation without HTTP session for extras/cron (`idempotency_key`) |
+| `ms3_order_number_generator` | `Services\Order\OrderNumberGenerator` | Order numbering |
+| `ms3_manager_order_cost_recalculator` | `Services\Order\ManagerOrderCostRecalculator` | Recalculate in order card (mgr) |
+| `ms3_manager_order_list` | `Services\Order\ManagerOrderListService` | Order list in the manager |
+| `ms3_manager_order_mutation` | `Services\Order\ManagerOrderMutationService` | Order mutations in the manager |
+| `ms3_manager_order_presenter` | `Services\Order\ManagerOrderPresenter` | Order card presentation |
+| `ms3_manager_order_products` | `Services\Order\ManagerOrderProductsService` | Order lines in the manager |
+| `ms3_order_lifecycle_ports` | `Services\Order\NullOrderLifecyclePorts` | Order lifecycle ports (null implementation by default) |
+
+```php
+// Get services directly
+$draftManager = $modx->services->get('ms3_order_draft_manager');
+$costCalculator = $modx->services->get('ms3_order_cost_calculator');
+$submitHandler = $modx->services->get('ms3_order_submit_handler');
+
+// Work with draft
+$draft = $draftManager->getOrCreateDraft($token, 'web');
+$draftManager->attachCustomer($draft, $customerId);
+
+// Calculate cost (needs orderData from toArray and token)
+$orderData = $draftManager->toArray($draft);
+$total = $costCalculator->getTotalCost($draft, $orderData, $token);
+// ['success' => true, 'message' => …, 'data' => ['cost' => …, 'cart_cost' => …,
+//   'delivery_cost' => …, 'payment_cost' => … plus the cart totals]]
+$cost = $total['data']['cost'];
+
+// Logging
+$logService = $modx->services->get('ms3_order_log');
+$logService->addEntry(
+    (int) $draft->get('id'),
+    \MiniShop3\Model\msOrderLog::ACTION_STATUS,
+    ['old' => 1, 'new' => 2]
+);
+```
+
+### Cart services
+
+::: info Facade architecture
+The `Cart.php` controller is also a **facade**. It uses `OrderDraftManager` for draft operations (cart and order share the same `msOrder` model).
+:::
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_cart_item_manager` | `Services\Cart\CartItemManager` | Line CRUD, totals |
+| `ms3_cart_mutation_handler` | `Services\Cart\CartMutationHandler` | Cart Web API: add/change/remove/change-option + `msOn*Cart` events |
+| `ms3_cart_response_normalizer` | `Services\Cart\CartResponseNormalizer` | Normalize the cart response for API and JS |
+
+```php
+$itemManager = $modx->services->get('ms3_cart_item_manager');
+
+// Add a product: an msProduct object and an already computed productKey
+$product = $modx->getObject(\MiniShop3\Model\msProduct::class, $productId);
+$result = $itemManager->addItem($draft, $product, $count, $options, $productKey);
+
+// Change quantity
+$itemManager->updateItemCount($draft, $key, $newCount);
+
+// Calculate cart totals (expects an items array, not the draft)
+$items = $itemManager->loadItems($draft);
+$status = $itemManager->calculateStatus($items);
+// total_count, total_cost, total_weight, total_discount, total_positions
+```
+
+**Cart vs Order responsibility:**
+
+```text
+OrderDraftManager    — draft lifecycle (shared by Cart and Order)
+CartItemManager     — cart line items (Cart-specific)
+OrderCostCalculator — order cost (Order-specific)
+OrderFieldManager   — order fields (Order-specific)
+```
+
+### Delivery and payment services
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_delivery_service` | `Services\Delivery\DeliveryService` | Delivery methods |
+| `ms3_delivery_catalog` | `Services\Delivery\DeliveryCatalogService` | Public delivery catalog (Web API) |
+| `ms3_payment_service` | `Services\Payment\PaymentService` | Payment methods |
+| `ms3_payment_catalog` | `Services\Payment\PaymentCatalogService` | Public payment catalog (Web API) |
+| `ms3_payment_link_resolver` | `Services\Payment\PaymentLinkResolver` | Payment URL: emails use `ms3_payment_link_statuses`, `msGetOrder` uses the `payStatus` parameter |
+| `ms3_payment_lifecycle` | `Services\Payment\PaymentLifecycleService` | Payment lifecycle into order statuses |
+| `ms3_shipment_lifecycle` | `Services\Shipment\ShipmentLifecycleService` | Shipments and tracking (`ms3_shipments` via `PdoShipmentStore`) |
+
+### Stock, SEO, validation, domain events
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_inventory` | `Services\Inventory\ProductStockInventory` | Reserve and commit `stock` when `ms3_inventory_enabled` is on (`InventoryServiceInterface`) |
+| `ms3_public_seo` | `Services\Seo\PublicSeoService` | Public SEO fields and `msOnGetPublicSeo` |
+| `ms3_validation_service` | `Services\Validation\ValidationService` | Validation pipeline (replaces rakit) |
+| `ms3_domain_events` | `Services\Events\DomainEventBridge` | Domain event bridge |
+| `ms3_webhook_dispatcher` | `Services\Events\NullWebhookDispatcher` | Outbound webhook dispatcher (null implementation by default) |
+
+### Extra fields and model fields
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_extra_fields` | `Services\ExtraFieldsService` | Extra field CRUD |
+| `ms3_repeater_field` | `Services\ExtraFields\RepeaterFieldService` | Repeater `xtype` |
+| `ms3_key_value_field` | `Services\ExtraFields\KeyValueFieldService` | Key-value `xtype` |
+| `ms3_model_field_service` | `Services\ModelField\ModelFieldService` | Model fields |
+| `ms3_model_field_section_service` | `Services\ModelField\ModelFieldSectionService` | Model field sections |
+
+### Category services
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_category_service` | `Services\Category\CategoryService` | Categories |
+| `ms3_category_catalog` | `Services\Category\CategoryCatalogService` | Public category catalog (Web API) |
+| `ms3_category_tree` | `Services\Category\CategoryTreeService` | Tree for the Web API and the manager |
+| `ms3_category_option_service` | `Services\Category\CategoryOptionService` | Category options |
+| `ms3_category_product_scope` | `Services\Category\CategoryProductScopeService` | Additional product categories for msProducts |
+| `ms3_category_products_list` | `Services\Category\CategoryProductsListService` | Category product grid |
+| `ms3_customer_resource_group_resolver` | `Services\Catalog\CustomerResourceGroupResolver` | Catalog ACL for a customer |
+| `ms3_catalog_acl_cache` | `Services\Catalog\CatalogAclCacheInvalidator` | Drop the catalog ACL cache |
+
+### Option services
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_option_service` | `Services\Option\OptionService` | EAV option system |
+| `ms3_option_loader` | `Services\Option\OptionLoaderService` | Load options with `CaptionOverlayResolver` |
+| `ms3_option_sync` | `Services\Option\OptionSyncService` | Sync option values |
+| `ms3_option_category_service` | `Services\Option\OptionCategoryService` | Bind options to categories |
+
+### Config services
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_config_service` | `Services\ConfigService` | Config facade |
+| `ms3_field_config_manager` | `Services\FieldConfigManager` | Field config |
+| `ms3_grid_config` | `Services\GridConfigService` | Grid config |
+| `ms3_filter_config` | `Services\FilterConfigManager` | Grid filters |
+| `ms3_settings_combo_list` | `Services\Settings\SettingsComboListService` | Lookups for settings combo fields |
+
+### Notification services
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_notifications` | `Notifications\NotificationManager` | Notification hub |
+| `ms3_notification_config` | `Services\Notification\NotificationConfigService` | Notification config |
+
+### Utilities
+
+| Key | Class | Purpose |
+| --- | --- | --- |
+| `ms3_token_service` | `Services\TokenService` | Token operations |
+| `ms3_image` | `Services\ImageService` | Image handling (Intervention Image) |
+| `ms3_vendor_service` | `Services\Vendor\VendorService` | Vendors |
+
+## Replacing services
+
+```mermaid
+flowchart BT
+  core[Built-in classes] --> main["ms3.services.php"]
+  main --> addons["ms3.services.d in alphabetical order"]
+  addons --> win["The last ms3_* key wins"]
+```
+
+MiniShop3 lets you replace default services with your own via config files.
+
+### Load order
+
+1. **Built-in classes** — component defaults
+2. **Main config** — `core/config/ms3.services.php`
+3. **Addon configs** — `core/config/ms3.services.d/*.php` (alphabetical)
+
+Each level overrides the previous.
+
+### Creating config
+
+Copy the example:
+
+```bash
+cp core/components/minishop3/config/ms3.services.example.php \
+   core/config/ms3.services.php
+```
+
+### Override example
+
+```php
+<?php
+// core/config/ms3.services.php
+
+return [
+    // Custom cart with promo codes
+    'ms3_cart' => [
+        'class' => \MyProject\Controllers\PromoCart::class,
+        'interface' => null,
+    ],
+
+    // Custom checkout handler (CRM integration)
+    'ms3_order_submit_handler' => [
+        'class' => \MyProject\Services\CRMOrderSubmitHandler::class,
+        'interface' => null,
+    ],
+
+    // Custom delivery (e.g. CDEK)
+    'ms3_delivery_service' => [
+        'class' => \MyProject\Services\CdekDeliveryService::class,
+        'interface' => null,
+    ],
+];
+```
+
+**Custom OrderSubmitHandler with CRM:**
+
+```php
+<?php
+namespace MyProject\Services;
+
+use MiniShop3\Model\msOrder;
+use MiniShop3\Services\Order\OrderSubmitHandler;
+
+class CRMOrderSubmitHandler extends OrderSubmitHandler
+{
+    public function submit(
+        msOrder $draft,
+        array $orderData,
+        string $token,
+        string $ctx = 'web',
+        array $submitData = []
+    ): array {
+        $this->validateWithCRM($orderData);
+
+        $result = parent::submit($draft, $orderData, $token, $ctx, $submitData);
+
+        if ($result['success']) {
+            $this->syncOrderToCRM((int) $result['data']['order_id']);
+        }
+
+        return $result;
+    }
+
+    protected function syncOrderToCRM(int $orderId): void
+    {
+        // Send to CRM
+    }
+}
+```
+
+**Programmatic order example (cron / extra):**
+
+```php
+use MiniShop3\Services\Order\OrderOrigin;
+
+$orders = $modx->services->get('ms3_programmatic_order');
+
+$result = $orders->create([
+    'idempotency_key' => 'crm-invoice-10042',
+    'products' => [
+        ['product_id' => 15, 'count' => 2],
+    ],
+    'delivery_id' => 1,
+    'payment_id' => 1,
+    'address' => [
+        'first_name' => 'John',
+        'email' => 'user@example.com',
+        'phone' => '+79991234567',
+    ],
+    'origin' => OrderOrigin::INTEGRATION,
+]);
+
+if (!$result['success']) {
+    $modx->log(modX::LOG_LEVEL_ERROR, '[CRM] ' . $result['message']);
+}
+```
+
+### Custom class requirements
+
+A custom class **must**:
+
+1. **Exist** and be loadable via autoloader
+2. **Extend** the MiniShop3 base class — but only for services without a declared interface
+
+Services that declare an `interface` (`ms3_inventory`, `ms3_order_lifecycle_ports`, `ms3_webhook_dispatcher`) need no inheritance: implementing the interface from scratch is enough. The check runs through `is_a()`, and the inheritance branch is skipped in that case. A custom stock implementation does not extend `ProductStockInventory`.
+
+An inventory example — the class implements the interface and extends nothing:
+
+```php
+// core/config/ms3.services.php
+return [
+    'ms3_inventory' => [
+        'class' => \MyCompany\Warehouse\WmsInventory::class,
+        'interface' => \MiniShop3\Services\Inventory\InventoryServiceInterface::class,
+    ],
+];
+```
+
+```php
+namespace MyCompany\Warehouse;
+
+use MiniShop3\Services\Inventory\InventoryContext;
+use MiniShop3\Services\Inventory\InventoryKey;
+use MiniShop3\Services\Inventory\InventoryServiceInterface;
+
+class WmsInventory implements InventoryServiceInterface
+{
+    public function getAvailable(InventoryKey $key): float { /* ask the WMS */ }
+    public function assertAvailable(InventoryKey $key, float $qty): void { /* check */ }
+    public function reserve(InventoryKey $key, float $qty, InventoryContext $ctx, bool $notify = true): void { }
+    public function release(InventoryKey $key, float $qty, InventoryContext $ctx, bool $notify = true): void { }
+    public function commit(InventoryKey $key, float $qty, InventoryContext $ctx): void { }
+}
+```
+
+The same applies to `ms3_order_lifecycle_ports` (`OrderLifecyclePortsInterface`) and `ms3_webhook_dispatcher` (`WebhookDispatcherInterface`). The commented-out stub in `core/components/minishop3/config/ms3.services.example.php` exists only for `ms3_webhook_dispatcher`; for stock and lifecycle ports the examples on this page are the only samples.
+
+::: warning Repeat `interface` in your own config
+Merging configs replaces the value as a whole. Leaving `'interface' => null` for such a service in `ms3.services.php` makes the validator demand inheritance from the stock class and reject an honest implementation of the interface. Carry the `interface` line over together with `class`.
+:::
+
+```php
+<?php
+namespace MyProject\Controllers;
+
+use MiniShop3\Controllers\Cart\Cart;
+
+class PromoCart extends Cart
+{
+    public function add(int $id, int $count = 1, array $options = []): array
+    {
+        // Check promo code
+        $promoCode = $_SESSION['promo_code'] ?? null;
+        if ($promoCode) {
+            $options['promo_code'] = $promoCode;
+        }
+
+        return parent::add($id, $count, $options);
+    }
+
+    public function applyPromoCode(string $code): array
+    {
+        // Custom promo logic
+        $_SESSION['promo_code'] = $code;
+        return $this->success('Promo code applied');
+    }
+}
+```
+
+### Class validation
+
+ServiceRegistry checks:
+
+- **Class exists** — `class_exists()`
+- **The interface**, when the service declares one — `is_a($className, $interface, true)`
+- **Inheritance**, only without an interface — `is_subclass_of($className, $baseClass)`
+
+On validation failure the default class is used and a log entry is written:
+
+```
+[MiniShop3 ServiceRegistry] Class 'MyProject\Cart' must extend MiniShop3\Controllers\Cart\Cart, using fallback
+```
+
+## Third-party extensions
+
+For components that extend MiniShop3, use the `ms3.services.d/` directory to avoid conflicts.
+
+### Structure
+
+```
+core/config/ms3.services.d/
+├── 01-base.php           # Base overrides (priority 01)
+├── 50-mypromocode.php    # Promo component (priority 50)
+├── 50-cdekdelivery.php   # CDEK delivery (priority 50)
+└── 99-override.php       # Final overrides (priority 99)
+```
+
+Each component has its own file. The file name sets the order (alphabetically, with a numeric prefix).
+
+### Component config example
+
+```php
+<?php
+// core/config/ms3.services.d/50-mypromocode.php
+
+return [
+    'ms3_cart' => [
+        'class' => \MyPromoCode\Controllers\PromoCart::class,
+    ],
+];
+```
+
+### Logging
+
+ServiceRegistry logs loaded configs:
+
+```
+[MiniShop3 ServiceRegistry] Loaded 1 service(s) from addon: 50-mypromocode.php
+[MiniShop3 ServiceRegistry] Using custom class: MyPromoCode\Controllers\PromoCart
+```
+
+## Usage examples
+
+### Custom delivery cost
+
+```php
+<?php
+namespace MyProject\Services;
+
+use MiniShop3\Model\msDelivery;
+use MiniShop3\Model\msOrder;
+use MiniShop3\Controllers\Delivery\DeliveryProviderInterface;
+use MiniShop3\Services\Delivery\DeliveryService;
+
+class CustomDeliveryService extends DeliveryService
+{
+    public function calculateDeliveryCost(
+        msDelivery $delivery,
+        ?DeliveryProviderInterface $controller,
+        msOrder $order,
+        float $cost = 0.0
+    ): float {
+        $baseCost = parent::calculateDeliveryCost($delivery, $controller, $order, $cost);
+
+        // Free delivery from 5000
+        if ($order->get('cart_cost') >= 5000) {
+            return 0;
+        }
+
+        // Surcharge for heavy orders
+        if ($order->get('weight') > 10000) {
+            $baseCost *= 1.5;
+        }
+
+        return $baseCost;
+    }
+}
+```
+
+### External CRM integration
+
+`OrderService` does not intercept order save. Public methods: `paymentCommissionBase`, `clampComputedTotal`, `aggregateProductsTotals`, `updateProducts`, `getOrderStatistics`. Send data to an external system from the [status change](events/status) event.
+
+```php
+<?php
+namespace MyProject\Services;
+
+use MiniShop3\Model\msOrder;
+
+class CRMSync
+{
+    public function syncToCRM(msOrder $order): void
+    {
+        $client = new \GuzzleHttp\Client();
+        $client->post('https://crm.example.com/api/orders', [
+            'json' => [
+                'order_id' => $order->get('id'),
+                'status' => $order->get('status_id'),
+                'total' => $order->get('cost'),
+            ]
+        ]);
+    }
+}
+```
+
+### Custom auth provider
+
+```php
+<?php
+namespace MyProject\Auth;
+
+use MiniShop3\Controllers\Auth\AuthProviderInterface;
+use MiniShop3\Model\msCustomer;
+use MODX\Revolution\modX;
+
+class TelegramAuthProvider implements AuthProviderInterface
+{
+    protected modX $modx;
+
+    public function __construct(modX $modx)
+    {
+        $this->modx = $modx;
+    }
+
+    public function getName(): string
+    {
+        return 'telegram';
+    }
+
+    public function supports(array $credentials): bool
+    {
+        return isset($credentials['telegram_hash'])
+            && isset($credentials['telegram_id']);
+    }
+
+    public function authenticate(array $credentials): ?msCustomer
+    {
+        // Verify Telegram signature
+        if (!$this->verifyTelegramHash($credentials)) {
+            return null;
+        }
+
+        // Find the customer by your own field. msCustomer has no telegram_id column:
+        // add it through the customer's extra fields or your add-on's migration
+        return $this->modx->getObject(msCustomer::class, [
+            'telegram_id' => $credentials['telegram_id']
+        ]);
+    }
+
+    protected function verifyTelegramHash(array $data): bool
+    {
+        // Telegram signature verification
+        return true;
+    }
+}
+```
+
+Register provider:
+
+```php
+$authManager = $modx->services->get('ms3_auth_manager');
+$authManager->registerProvider(new TelegramAuthProvider($modx));
+```
+
+## System settings
+
+These keys are not in the transport package. `ServiceRegistry` reads the path from the option and, when the option is empty, uses the fallback:
+
+| Option | Fallback path | When a DEBUG line is written |
+| --- | --- | --- |
+| `ms3_services_config` | `{core_path}config/ms3.services.php` | The option is set and the file is missing |
+| `ms3_services_addons_dir` | `{core_path}config/ms3.services.d/` | The option is set and the directory is missing |
+
+Those two lines appear only when the option is set and the file or directory is missing. On a normal install the options are empty, so the lines are absent.
+
+The third line, `No addon configs found in: …`, does not appear on a normal install: the installer **does not create** `ms3.services.d/` — the resolver only makes `ms3.routes.d/web` and `ms3.routes.d/manager`. While the directory is missing, `loadAddonConfigs()` returns straight away and writes nothing. The line shows up only for someone who created the directory by hand or removed the add-on file from it.
+
+A missing file or directory at these paths is not an error. `ServiceRegistry` continues.
+
+## Troubleshooting
+
+### Service not found
+
+The MODX container throws `MODX\Revolution\Services\NotFoundException`:
+
+```
+Dependency not found with key ms3_my_service.
+```
+
+**Fixes:**
+
+1. Ensure `ServiceRegistry::register()` runs on init
+2. Check service key (must include `ms3_` prefix)
+3. Ensure class exists and is autoloadable
+4. Look in the MODX log: a `No factory registered for service` line means the key is not one of the built-in ones, and such a service is never registered
+
+::: warning A new key cannot be added through configuration
+`ServiceRegistry` only creates keys that have a factory in the code, the same 83 listed above. Configuration replaces the **class of an existing** service. An unknown key in `ms3.services.php` or `ms3.services.d/*.php` is skipped and written to the log. An add-on puts its own service straight into the MODX container: `$modx->services->add('mypackage_service', …)`.
+:::
+
+### Custom class not used
+
+```
+[MiniShop3 ServiceRegistry] Class 'MyClass' must extend BaseClass, using fallback
+```
+
+**Fixes:**
+
+1. Ensure custom class extends the MiniShop3 base class
+2. Check namespace and use statements
+3. Clear MODX cache
+
+### Component conflict
+
+If two components override the same service, the one whose file loads last (by name) wins.
+
+**Fix:** Use numeric prefixes to control order:
+
+- `10-base-component.php` — loads first
+- `90-override-component.php` — loads last and wins

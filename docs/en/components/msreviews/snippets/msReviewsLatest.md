@@ -1,0 +1,115 @@
+---
+title: msReviewsLatest
+description: Виджет последних отзывов для главной и лендингов msReviews
+---
+
+<!-- TODO: translate from docs/components/msreviews/snippets/msReviewsLatest.md -->
+
+# Сниппет msReviewsLatest
+
+Лента последних опубликованных отзывов: рейтинг, текст, ссылка на ресурс.
+
+## Назначение
+
+Главная, категория, лендинг. Область: `parents` или `productIds`. Одного товара — [msReviews](msReviews). JSON-LD не выводится.
+
+С **1.2.1** при `showProduct=1` заголовок и URL — из любого опубликованного `site_content`, не только `msProduct`. Привязка к обычной странице в CMP не даёт пустую ссылку «Товар».
+
+## Где вызывать
+
+- Шаблон **главной**, лендинг, блог.
+- Рядом часто ставят [msTopRatedProducts](msTopRatedProducts) и [msQuestionsLatest](msQuestionsLatest).
+
+## Зависимости
+
+- **MiniShop3**, **msReviews**
+- **pdoTools 3.0+** — чанки на Fenom. Для пагинации нужна обёртка `pdoPage`
+- Голоса «полезно» на ленте — [msReviews](msReviews) (`engagement` здесь не используется).
+
+## Параметры
+
+| Параметр | По умолчанию | Описание |
+| --- | --- | --- |
+| `limit` | `10` | Записей (1–50) |
+| `offset` | `0` | Пропуск. При вызове из `pdoPage` передаётся обёрткой автоматически |
+| `totalVar` | `page.total` | Плейсхолдер total для `pdoPage` |
+| `tpl` | `tplReviewLatestItem` | Чанк карточки |
+| `wrapper` | `tplReviewsLatestList` | Чанк-обёртка |
+| `parents` | *(пусто)* | CSV id категорий, не больше 50. Под ними до 2000 документов. Пусто — весь магазин |
+| `productIds` | *(пусто)* | CSV id товаров, не больше 2000. Приоритет над `parents` |
+| `verifiedOnly` | `0` | Только подтверждённые покупки |
+| `minRating` | `0` | Минимальная оценка 1–5. `0` — без фильтра |
+| `showProduct` | `1` | Ссылка на ресурс (`product_title` / `product_url`) |
+| `showRating` | `1` | Звёзды в карточке |
+| `showMedia` | `0` | Одно превью фото |
+| `dateFormat` | *(настройка)* | Формат даты |
+| `hideEmpty` | `0` | Пустой вывод без отзывов |
+| `engagement` | `0` | В схеме есть. Не читается. `reviews.js` не подключает |
+| `viewAllUrl` | *(пусто)* | URL ссылки «Смотреть все» в футере блока |
+| `registerCss` | `1` | Подключать `reviews.css` этим вызовом |
+| `registerJs` | `1` | Не влияет на JS: регистрируется только CSS |
+
+## Блок на главной
+
+::: code-group
+
+```fenom
+{'!msReviewsLatest' | snippet : [
+  'limit' => 8,
+  'showProduct' => 1,
+  'hideEmpty' => 1
+]}
+```
+
+```modx
+[[!msReviewsLatest? &limit=`8` &showProduct=`1` &hideEmpty=`1`]]
+```
+
+:::
+
+## Фильтр по категории и verified
+
+::: code-group
+
+```fenom
+{set $catalog_id = ('ms3_page_id_catalog' | option) ?: ('site_start' | option)}
+{'!msReviewsLatest' | snippet : [
+  'limit' => 6,
+  'parents' => $catalog_id,
+  'verifiedOnly' => 1,
+  'minRating' => 4,
+  'hideEmpty' => 1,
+  'viewAllUrl' => ($catalog_id | url)
+]}
+```
+
+```modx
+[[!msReviewsLatest?
+  &limit=`6`
+  &parents=`[[++ms3_page_id_catalog]]`
+  &verifiedOnly=`1`
+  &minRating=`4`
+  &hideEmpty=`1`
+  &viewAllUrl=`[[~[[++ms3_page_id_catalog]]]]`
+]]
+```
+
+:::
+
+## Голоса на ленте
+
+Кнопки «полезно» — [msReviews](msReviews) и `reviews.js`, не этот сниппет.
+
+## Пагинация
+
+Обёртка `pdoPage` с `element=msReviewsLatest`. См. [Интеграция — пагинация](../integration#пагинация-pdopage), [msReviews](msReviews#пагинация-через-pdopage).
+
+Чанки: [Чанки — tplReviewLatestItem](../chunks).
+
+## См. также
+
+- [msTopRatedProducts](msTopRatedProducts)
+- [msQuestionsLatest](msQuestionsLatest)
+- [msReviews](msReviews) — список на карточке товара
+- [Интеграция — карточка или лента](../integration#какой-сниппет-списка-карточка-или-лента)
+- [FAQ](../faq)

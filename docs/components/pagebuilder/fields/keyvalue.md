@@ -1,0 +1,106 @@
+---
+title: "keyvalue"
+description: "Массив пар ключ–значение без typed columns"
+---
+
+# Поле keyvalue
+
+Версия: **Pro** (`advanced-fields`).
+
+<!-- ![keyvalue](/components/pagebuilder/screenshots/fields/keyvalue.jpg) -->
+
+## Зачем этот тип
+
+Проще, чем [table](table), если нужна одна текстовая колонка значения. Подписи колонок задают `keyLabel` и `valueLabel` (или `key_label` / `value_label`). Списка колонок в схеме нет, число строк не ограничено.
+
+## Когда использовать
+
+- Meta-атрибуты, параметры, характеристики
+- Свои параметры для чанка
+- Список «название: значение» без типов ячеек
+
+## Советы
+
+Ячейки с типами или изображением: [table](table).
+
+## Похожие типы
+
+- [table](table) для типизированной сетки
+- [repeater](repeater) с двумя text для той же формы (Free)
+
+## Настройка
+
+```json
+{
+  "name": "meta",
+  "type": "keyvalue",
+  "label": "Мета",
+  "keyLabel": "Параметр",
+  "valueLabel": "Значение",
+  "tab": "Контент",
+  "width": 100,
+  "active": true
+}
+```
+
+## Значение
+
+Массив `{ key, value }`.
+
+## Данные секции {#vyvod-v-section-data}
+
+Ключ `meta` в данных секции:
+
+```json
+{
+  "meta": [
+    {
+      "key": "author",
+      "value": "PageBuilder"
+    },
+    {
+      "key": "version",
+      "value": "1.0"
+    }
+  ]
+}
+```
+
+## Пример в chunk
+
+Перебор пар — блок Fenom. В MODX — сниппет или элемент по индексу.
+
+::: code-group
+
+```modx
+<div><strong>[[+meta.0.key]]:</strong> [[+meta.0.value]]</div>
+```
+
+```fenom
+{foreach $meta as $row}
+  <div><strong>{$row.key|pb_text}:</strong> {$row.value|pb_text}</div>
+{/foreach}
+```
+
+:::
+
+## Общие свойства
+
+Для полей с `name`, которые сохраняются в данных секции:
+
+| Ключ | Тип | Роль | Панель |
+| --- | --- | --- | --- |
+| `tab` | string | Подзаголовок группы в инспекторе | да |
+| `width` | 25, 33, 50, 66, 75, 100 | Ширина поля в % строки (flex); в CMP только эти значения | да |
+| `description` | string | Подсказка под подписью | да |
+| `default` | any | Начальное значение новой секции | да |
+| `active` | bool | `false`: скрыть поле в инспекторе | да |
+| `required` | bool | Обязательно при **publish** (черновик сохраняется) | да |
+
+Подробнее: [обзор полей](overview#общие-свойства-поля).
+
+## Дальше
+
+- [Справочник типов](types)
+- [Обзор полей](overview)
+- [Pro в менеджере](../integration)

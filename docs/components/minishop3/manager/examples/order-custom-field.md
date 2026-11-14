@@ -1,0 +1,119 @@
+---
+title: Поле «Комментарий менеджера» в заказе
+description: Пошагово — своё поле на заказе и сохранение из Vue-формы в админке
+---
+
+# Поле «Комментарий менеджера» в заказе
+
+Добавьте своё текстовое поле к заказу и увидите его в карточке **Пакеты → MiniShop3 → Заказы**.
+
+## Цель
+
+Менеджер вводит внутренний комментарий к заказу. Значение хранится в колонке `ms3_orders` и сохраняется через `PUT /api/mgr/orders/{id}`.
+
+## Что понадобится
+
+- MiniShop3 1.14.x
+- Право `mssetting_save` (создание своего поля)
+- Право `msorder_list` (чтение карточки)
+- Право `msorder_save` (сохранение заказа)
+
+## Шаг 1. Создайте своё поле
+
+1. Откройте **Пакеты → MiniShop3 → Утилиты → Свои поля**.
+2. В фильтре **Класс модели** выберите **msOrder (Заказы)**.
+3. Нажмите **Создать поле** и заполните:
+
+| Параметр | Значение |
+| --- | --- |
+| Ключ | `manager_comment` |
+| Название | Комментарий менеджера |
+| xtype | `textfield` |
+| dbtype | `varchar` |
+| precision | `500` |
+| phptype | `string` |
+| Активно | да |
+
+Сохраните форму. Пакет создаст миграцию и добавит колонку в таблицу заказов.
+
+![Утилита «Свои поля»](/components/minishop3/screenshots/mgr-extra-fields.png)
+
+::: tip Класс в БД
+В UI класс сохраняется как `MiniShop3\Model\msOrder`. В API создания укажите то же значение в поле `class`.
+:::
+
+## Шаг 2. Проверьте API
+
+```http
+GET /api/mgr/extra-fields?class=MiniShop3\Model\msOrder
+```
+
+В списке должно быть поле `manager_comment` с `"active": true` и `"column_exists": true`.
+
+## Шаг 3. Откройте заказ в админке
+
+1. **Пакеты → MiniShop3 → Заказы** → выберите заказ.
+2. На вкладке с данными заказа найдите секцию **Дополнительные поля заказа**.
+3. Введите текст в **Комментарий менеджера**.
+4. Сохраните карточку.
+
+![Секция дополнительных полей на карточке заказа](/components/minishop3/screenshots/mgr-order-extra-field.png)
+
+Vue-форма отправляет значение на верхнем уровне тела запроса:
+
+```json
+{
+  "manager_comment": "Позвонить перед доставкой"
+}
+```
+
+## Шаг 4. Проверьте сохранение
+
+Перезагрузите карточку или запросите заказ:
+
+```http
+GET /api/mgr/orders/{id}
+```
+
+В ответе должно быть `"manager_comment": "Позвонить перед доставкой"`.
+
+## Отличие от полей модели
+
+Для нового текста на заказе берите **Свои поля**: своё поле **создаёт колонку** в БД. [Поля модели](/components/minishop3/manager/model-fields/cookbook) только меняют отображение существующих колонок (секции, xtype, `visible`).
+
+## API appendix
+
+| Метод | Путь | Права |
+| --- | --- | --- |
+| GET | `/api/mgr/extra-fields?class=MiniShop3\Model\msOrder` | сессия менеджера |
+| POST | `/api/mgr/extra-fields` | `mssetting_save` |
+| PUT | `/api/mgr/orders/{id}` | `msorder_save` |
+| GET | `/api/mgr/orders/{id}` | `msorder_list` |
+
+**POST /api/mgr/extra-fields** (фрагмент):
+
+```json
+{
+  "class": "MiniShop3\\Model\\msOrder",
+  "key": "manager_comment",
+  "label": "Комментарий менеджера",
+  "xtype": "textfield",
+  "dbtype": "varchar",
+  "precision": "500",
+  "phptype": "string",
+  "null": true,
+  "active": true
+}
+```
+
+## Troubleshooting
+
+| Симптом | Что проверить |
+| --- | --- |
+| 403 на запись своих полей | Политика `mssetting_save` у пользователя |
+| Секция в заказе пустая | `active = 1` в `ms3_extra_fields`, ключ без опечаток |
+| Поле есть в утилите, но не в заказе | Баг [#812](https://github.com/modx-pro/MiniShop3/issues/812): форма запрашивает `GET ...?class=msOrder`, в БД часто `MiniShop3\Model\msOrder`. Сверьте в DevTools |
+| Ошибка после создания | Лог MODX: миграция Phinx, права на `core/components/minishop3/migrations` |
+| Две системы полей путают | См. [issue #214](https://github.com/modx-pro/MiniShop3/issues/214) и [cookbook полей модели](/components/minishop3/manager/model-fields/cookbook) |
+
+См. также: [Cookbook своих полей](/components/minishop3/manager/extra-fields/cookbook), [Заказы](/components/minishop3/interface/orders).

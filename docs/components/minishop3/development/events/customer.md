@@ -1,0 +1,748 @@
+---
+title: События покупателя
+---
+# События покупателя
+
+События для управления данными покупателя: добавление полей, валидация, создание покупателя, управление адресами.
+
+## msOnBeforeGetOrderCustomer
+
+Вызывается **перед** получением покупателя для заказа.
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `controller` | `\MiniShop3\Controllers\Order\Order` | Контроллер заказа |
+| `msCustomer` | `msCustomer \| null` | Объект покупателя (может быть null) |
+
+::: warning Отмена не блокирует оформление заказа
+Привязка `msCustomer` к заказу опциональна — `OrderSubmitHandler` продолжает оформление, даже если клиент не был создан/найден (данные остаются в `msOrderAddress`). Отмена этого события через `output()` не «запрещает checkout для неавторизованных» — она лишь оставляет заказ без привязанного `msCustomer`.
+:::
+
+### Подмена клиента
+
+Плагин может вернуть готовый `msCustomer` через `returnedValues['msCustomer']` — например, для кастомного резолва по внешнему ID:
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeGetOrderCustomer':
+        // На входе msCustomer обычно null — резолвим сами по внешнему признаку
+        $externalId = $_SESSION['crm_customer_id'] ?? null;
+        if ($externalId) {
+            $found = $modx->getObject(\MiniShop3\Model\msCustomer::class, [
+                'external_id' => $externalId,
+            ]);
+            if ($found) {
+                $modx->event->returnedValues = ['msCustomer' => $found];
+            }
+        }
+        break;
+}
+```
+
+---
+
+## msOnGetOrderCustomer
+
+Вызывается **после** получения покупателя для заказа.
+
+::: warning Ошибка плагина отменяет уже найденную привязку
+Хотя событие называется «после», отмена через `output()` здесь всё ещё имеет эффект: `customer_id` не будет проставлен заказу, даже если `msCustomer` к этому моменту уже создан/найден и, возможно, залогинен через сессию.
+:::
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `controller` | `\MiniShop3\Controllers\Order\Order` | Контроллер заказа |
+| `msCustomer` | `msCustomer \| null` | Объект покупателя |
+
+### Пример использования
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnGetOrderCustomer':
+        /** @var \MiniShop3\Model\msCustomer $customer */
+        $customer = $scriptProperties['msCustomer'];
+
+        if ($customer) {
+            // Обновить статистику посещений
+            $visits = $customer->get('visits') ?? 0;
+            $customer->set('visits', $visits + 1);
+            $customer->set('last_visit', date('Y-m-d H:i:s'));
+            $customer->save();
+        }
+        break;
+}
+```
+
+---
+
+## msOnBeforeAddToCustomer
+
+Вызывается **перед** добавлением или изменением поля покупателя.
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `customer` | `\MiniShop3\Controllers\Customer\Customer` | Контроллер покупателя |
+| `key` | `string` | Ключ поля |
+| `value` | `mixed` | Значение поля |
+
+### Прерывание операции
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeAddToCustomer':
+        $key = $scriptProperties['key'];
+        $value = $scriptProperties['value'];
+
+        // Запретить определённые домены email
+        if ($key === 'email') {
+            $blockedDomains = ['tempmail.com', 'throwaway.com'];
+            $domain = substr($value, strpos($value, '@') + 1);
+
+            if (in_array($domain, $blockedDomains)) {
+                $modx->event->output('Временные email адреса не принимаются');
+                return;
+            }
+        }
+        break;
+}
+```
+
+### Модификация данных
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeAddToCustomer':
+        $key = $scriptProperties['key'];
+        $value = $scriptProperties['value'];
+
+        $values = &$modx->event->returnedValues;
+
+        // Форматирование телефона
+        if ($key === 'phone') {
+            $values['value'] = '+7' . preg_replace('/\D/', '', $value);
+        }
+
+        // Капитализация имени
+        if ($key === 'first_name' || $key === 'last_name') {
+            $values['value'] = mb_convert_case($value, MB_CASE_TITLE, 'UTF-8');
+        }
+        break;
+}
+```
+
+---
+
+## msOnAddToCustomer
+
+Вызывается **после** добавления поля покупателю.
+
+::: warning Ошибка плагина возвращает клиенту error, хотя поле уже сохранено
+`msCustomer->save()` вызывается **до** этого события. Если обработчик отменит его через `output()`, `add()` вернёт ошибку вызывающей стороне — но поле в БД уже сохранено. Состояние API-ответа и БД могут разойтись.
+:::
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `customer` | `\MiniShop3\Controllers\Customer\Customer` | Контроллер покупателя |
+| `key` | `string` | Ключ поля |
+| `value` | `mixed` | Сохранённое значение |
+| `msCustomer` | `msCustomer` | Объект покупателя |
+| `isNew` | `bool` | Новый ли покупатель |
+
+### Пример использования
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnAddToCustomer':
+        $key = $scriptProperties['key'];
+        $value = $scriptProperties['value'];
+        $customer = $scriptProperties['msCustomer'];
+        $isNew = $scriptProperties['isNew'];
+
+        // Логирование новых покупателей
+        if ($isNew) {
+            $modx->log(modX::LOG_LEVEL_INFO, sprintf(
+                '[Customer] Создан покупатель #%d: %s = %s',
+                $customer->get('id'),
+                $key,
+                $value
+            ));
+        }
+        break;
+}
+```
+
+---
+
+## msOnBeforeValidateCustomerValue
+
+Вызывается **перед** валидацией значения поля покупателя.
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `customer` | `\MiniShop3\Controllers\Customer\Customer` | Контроллер покупателя |
+| `key` | `string` | Ключ поля |
+| `value` | `mixed` | Значение для валидации |
+
+### Прерывание операции
+
+Ошибка плагина здесь превращается в ошибку валидации самого поля:
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeValidateCustomerValue':
+        $key = $scriptProperties['key'];
+        $value = $scriptProperties['value'];
+
+        // Кастомное правило до штатной валидации
+        if ($key === 'inn' && !empty($value) && !preg_match('/^\d{10,12}$/', $value)) {
+            $modx->event->output('ИНН должен содержать 10 или 12 цифр');
+            return;
+        }
+        break;
+}
+```
+
+### Модификация данных
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeValidateCustomerValue':
+        $key = $scriptProperties['key'];
+        $value = $scriptProperties['value'];
+
+        $values = &$modx->event->returnedValues;
+
+        // Нормализация email перед валидацией
+        if ($key === 'email') {
+            $values['value'] = strtolower(trim($value));
+        }
+        break;
+}
+```
+
+---
+
+## msOnValidateCustomerValue
+
+Вызывается **после** успешной валидации значения поля.
+
+::: warning Может отменить уже пройденную валидацию
+Несмотря на «после успешной валидации» — ошибка плагина здесь (`output()`) всё ещё превращается в ошибку валидации поля, точно так же, как в `msOnBeforeValidateCustomerValue`.
+:::
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `customer` | `\MiniShop3\Controllers\Customer\Customer` | Контроллер покупателя |
+| `key` | `string` | Ключ поля |
+| `value` | `mixed` | Валидированное значение |
+
+### Модификация данных
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnValidateCustomerValue':
+        $key = $scriptProperties['key'];
+        $value = $scriptProperties['value'];
+
+        $values = &$modx->event->returnedValues;
+
+        // Постобработка телефона
+        if ($key === 'phone') {
+            // Форматирование для отображения
+            $values['value'] = preg_replace(
+                '/(\d{1})(\d{3})(\d{3})(\d{2})(\d{2})/',
+                '+$1 ($2) $3-$4-$5',
+                preg_replace('/\D/', '', $value)
+            );
+        }
+        break;
+}
+```
+
+---
+
+## msOnErrorValidateCustomerValue
+
+Вызывается при **ошибке** валидации поля покупателя.
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `customer` | `\MiniShop3\Controllers\Customer\Customer` | Контроллер покупателя |
+| `key` | `string` | Ключ поля |
+| `value` | `mixed` | Невалидное значение |
+| `errors` | `array` | Массив ошибок |
+
+### Замена набора ошибок
+
+Плагин может полностью заменить массив ошибок через `returnedValues['errors']`, либо свернуть его в одно сообщение, отменив событие через `output()`:
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnErrorValidateCustomerValue':
+        $key = $scriptProperties['key'];
+        $errors = $scriptProperties['errors'];
+
+        // Кастомизация сообщений об ошибках
+        $modx->log(modX::LOG_LEVEL_WARN, sprintf(
+            '[Customer] Ошибка валидации %s: %s',
+            $key,
+            json_encode($errors)
+        ));
+
+        // Заменить набор ошибок своим (иначе используется исходный $errors)
+        if ($key === 'phone') {
+            $modx->event->returnedValues = [
+                'errors' => [$key => 'Укажите телефон в формате +7XXXXXXXXXX'],
+            ];
+        }
+        break;
+}
+```
+
+---
+
+## msOnBeforeCreateCustomer
+
+Вызывается **перед** созданием нового покупателя.
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `customer` | `\MiniShop3\Controllers\Customer\Customer` | Контроллер покупателя |
+| `customerData` | `array` | Данные для создания |
+
+### Прерывание операции
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeCreateCustomer':
+        $data = $scriptProperties['customerData'];
+
+        // Проверка на дублирование
+        $existing = $modx->getObject(\MiniShop3\Model\msCustomer::class, [
+            'email' => $data['email'],
+        ]);
+
+        if ($existing) {
+            $modx->event->output('Покупатель с таким email уже существует');
+            return;
+        }
+        break;
+}
+```
+
+### Модификация данных
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeCreateCustomer':
+        $data = $scriptProperties['customerData'];
+
+        $values = &$modx->event->returnedValues;
+
+        // Добавить дополнительные поля
+        $data['createdon'] = date('Y-m-d H:i:s');
+        $data['source'] = $_SERVER['HTTP_REFERER'] ?? 'direct';
+        $data['ip'] = $_SERVER['REMOTE_ADDR'] ?? '';
+
+        $values['customerData'] = $data;
+        break;
+}
+```
+
+---
+
+## msOnCreateCustomer
+
+Вызывается **после** создания нового покупателя.
+
+::: warning Ответ плагина только пишется в журнал
+При `success=false` ядро пишет `WARN` и всё равно возвращает созданного покупателя. Отменить создание можно только в парном `msOnBeforeCreateCustomer` — там `output()` возвращает `null` вместо объекта.
+:::
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `customer` | `\MiniShop3\Controllers\Customer\Customer` | Контроллер покупателя |
+| `customerData` | `array` | Данные покупателя |
+| `msCustomer` | `msCustomer` | Созданный объект покупателя |
+
+### Пример использования
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnCreateCustomer':
+        /** @var \MiniShop3\Model\msCustomer $customer */
+        $customer = $scriptProperties['msCustomer'];
+
+        // Логирование
+        $modx->log(modX::LOG_LEVEL_INFO, sprintf(
+            '[Customer] Создан покупатель #%d: %s %s (%s)',
+            $customer->get('id'),
+            $customer->get('first_name'),
+            $customer->get('last_name'),
+            $customer->get('email')
+        ));
+
+        // Отправка в CRM
+        // $crm->createContact($customer->toArray());
+
+        // Подписка на рассылку
+        // $mailService->subscribe($customer->get('email'));
+        break;
+}
+```
+
+---
+
+## msOnBeforeAddCustomerAddress
+
+Вызывается **перед** добавлением адреса покупателю.
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `addressData` | `array` | Данные адреса |
+
+### Прерывание операции
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeAddCustomerAddress':
+        $data = $scriptProperties['addressData'];
+
+        // Ограничение количества адресов
+        $count = $modx->getCount(\MiniShop3\Model\msCustomerAddress::class, [
+            'customer_id' => $data['customer_id'],
+        ]);
+
+        if ($count >= 5) {
+            $modx->event->output('Максимум 5 адресов на покупателя');
+            return;
+        }
+        break;
+}
+```
+
+### Модификация данных
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeAddCustomerAddress':
+        $data = $scriptProperties['addressData'];
+
+        $values = &$modx->event->returnedValues;
+
+        // Геокодирование адреса
+        $fullAddress = implode(', ', array_filter([
+            $data['city'],
+            $data['street'],
+            $data['building'],
+        ]));
+
+        // $coordinates = $geocoder->geocode($fullAddress);
+        // $data['lat'] = $coordinates['lat'];
+        // $data['lng'] = $coordinates['lng'];
+
+        $values['addressData'] = $data;
+        break;
+}
+```
+
+---
+
+## msOnAddCustomerAddress
+
+Вызывается **после** добавления адреса покупателю.
+
+::: warning Ответ плагина только пишется в журнал
+При `success=false` ядро пишет `WARN`, а `add()` всё равно возвращает `true`. Отменяет добавление только парное `msOnBeforeAddCustomerAddress`.
+:::
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `addressData` | `array` | Данные адреса |
+| `msCustomerAddress` | `msCustomerAddress` | Созданный объект адреса |
+
+### Пример использования
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnAddCustomerAddress':
+        $address = $scriptProperties['msCustomerAddress'];
+
+        $modx->log(modX::LOG_LEVEL_INFO, sprintf(
+            '[Customer] Добавлен адрес #%d для покупателя #%d: %s',
+            $address->get('id'),
+            $address->get('customer_id'),
+            $address->get('name')
+        ));
+        break;
+}
+```
+
+---
+
+## msOnBeforeUpdateCustomer
+
+::: warning Процессор не используется в MS3
+Событие зарегистрировано в реестре (`_build/elements/events.php`) и корректно вызывается процессором `MiniShop3\Processors\Customer\Update` (наследует MODX `UpdateProcessor`), но на данный момент **ни один встроенный admin UI или Web API MS3 не вызывает `Customer/Update`** — ни один грид или контроллер не делает `$modx->runProcessor('Customer/Update', [...])`. Событие существует как точка расширения: кастомная интеграция может вызвать процессор напрямую, и оно отработает штатно.
+:::
+
+Вызывается **перед** сохранением существующего покупателя — стандартный `fireBeforeSaveEvent()` из MODX `UpdateProcessor`.
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `mode` | `string` | Всегда `modSystemEvent::MODE_UPD` (`'upd'`) |
+| `data` | `array` | Поля `msCustomer` — уже НОВЫЕ значения (`$object->toArray()`) |
+| `id` | `int` | ID сохраняемого покупателя |
+| `msCustomer` | `msCustomer` | Ссылка на объект покупателя |
+| `object` | `msCustomer` | Та же ссылка, что и `msCustomer` (MS2-style алиас) |
+
+::: tip Отмена — через `$modx->event->output()`
+Событие относится к стандартному MODX `UpdateProcessor`, но канал отмены тот же, что у событий `Customer/*` выше: `fireBeforeSaveEvent()` собирает `$modx->event->_output` всех плагинов. Значение, просто возвращённое обработчиком, ядро лишь пишет в журнал ошибок события — `return 'строка'` сохранение не отменит.
+:::
+
+### Прерывание операции
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeUpdateCustomer':
+        $data = $scriptProperties['data'];
+        $id = $scriptProperties['id'];
+
+        // Запретить смену email на уже занятый другим покупателем
+        if (!empty($data['email'])) {
+            $existing = $modx->getObject(\MiniShop3\Model\msCustomer::class, [
+                'email' => $data['email'],
+                'id:!=' => $id,
+            ]);
+
+            if ($existing) {
+                $modx->event->output('Email уже используется другим покупателем');
+                return;
+            }
+        }
+        break;
+}
+```
+
+---
+
+## msOnUpdateCustomer
+
+::: warning Процессор не используется в MS3
+Как и `msOnBeforeUpdateCustomer` — событие зарегистрировано и корректно вызывается процессором `MiniShop3\Processors\Customer\Update`, но пока не вызывается ни из одного встроенного UI/API MS3. Подробности — в предупреждении выше.
+:::
+
+Вызывается **после** успешного сохранения покупателя (`fireAfterSaveEvent()`). Только уведомление — возвращаемое значение игнорируется, сохранение уже выполнено.
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `mode` | `string` | Всегда `modSystemEvent::MODE_UPD` (`'upd'`) |
+| `id` | `int` | ID сохранённого покупателя |
+| `msCustomer` | `msCustomer` | Ссылка на сохранённый объект покупателя |
+| `object` | `msCustomer` | Та же ссылка, что и `msCustomer` (MS2-style алиас) |
+
+Обратите внимание: в отличие от `msOnBeforeUpdateCustomer`, здесь **нет** ключа `data` — снимок полей передаётся только в Before-событии.
+
+### Пример использования
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnUpdateCustomer':
+        /** @var \MiniShop3\Model\msCustomer $customer */
+        $customer = $scriptProperties['msCustomer'];
+
+        $modx->log(modX::LOG_LEVEL_INFO, sprintf(
+            '[Customer] Покупатель #%d обновлён: %s',
+            $customer->get('id'),
+            $customer->get('email')
+        ));
+        break;
+}
+```
+
+---
+
+## Полный пример: верификация покупателя
+
+```php
+<?php
+/**
+ * Плагин: Верификация покупателя
+ * События: msOnBeforeCreateCustomer, msOnCreateCustomer
+ */
+
+switch ($modx->event->name) {
+
+    case 'msOnBeforeCreateCustomer':
+        $data = $scriptProperties['customerData'];
+
+        // Проверка email на существование
+        $existing = $modx->getObject(\MiniShop3\Model\msCustomer::class, [
+            'email' => $data['email'],
+        ]);
+
+        if ($existing) {
+            // Обновляем токен существующего покупателя
+            $existing->set('token', $data['token']);
+            $existing->save();
+            $modx->event->output('Покупатель найден по email');
+            return;
+        }
+
+        // Проверка телефона
+        if (!empty($data['phone'])) {
+            $existingByPhone = $modx->getObject(\MiniShop3\Model\msCustomer::class, [
+                'phone' => $data['phone'],
+            ]);
+
+            if ($existingByPhone) {
+                $existingByPhone->set('token', $data['token']);
+                $existingByPhone->save();
+                $modx->event->output('Покупатель найден по телефону');
+                return;
+            }
+        }
+
+        // Добавляем метаданные
+        $values = &$modx->event->returnedValues;
+        $data['verified'] = false;
+        $data['verification_code'] = substr(md5(uniqid()), 0, 6);
+        $data['createdon'] = date('Y-m-d H:i:s');
+        $values['customerData'] = $data;
+        break;
+
+    case 'msOnCreateCustomer':
+        $customer = $scriptProperties['msCustomer'];
+        $data = $scriptProperties['customerData'];
+
+        // Отправка кода верификации
+        if (!empty($data['verification_code']) && !empty($customer->get('email'))) {
+            // Отправка email с кодом
+            // $mailer->send($customer->get('email'), 'Код верификации: ' . $data['verification_code']);
+
+            $modx->log(modX::LOG_LEVEL_INFO, sprintf(
+                '[Verification] Код %s отправлен на %s',
+                $data['verification_code'],
+                $customer->get('email')
+            ));
+        }
+        break;
+}
+```
+
+---
+
+## msOnBeforeGetOrderUser
+
+Вызывается **перед** разрешением системного пользователя MODX (`modUser`) для заказа. Срабатывает в `OrderUserResolver` при оформлении заказа, когда системная настройка `ms3_order_register_user_on_submit` включена.
+
+::: tip Чем `modUser` отличается от `msCustomer`
+`modUser` — это системный пользователь MODX (логин, пароль, профиль). `msCustomer` — отдельная сущность покупателя магазина (имя, телефон, токен сессии). Резолвер `modUser` нужен для регистрации заказчика в системе авторизации MODX, а не для управления его покупательским профилем.
+:::
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `resolver` | `\MiniShop3\Services\Order\OrderUserResolver` | Сервис разрешения пользователя |
+| `user` | `\MODX\Revolution\modUser` \| `null` | Текущий вариант пользователя — на входе обычно `null` |
+| `orderData` | `array` | Снимок полей заказа (адресные `address_email`, `address_phone`, `address_first_name` и т. д.) |
+
+### Подмена пользователя
+
+У события два канала. Первый — готовый `modUser` в `returnedValues['user']`, он обходит стандартный поиск и создание. Второй — `returnedValues['orderData']`: подменённый массив полей заказа, из которого ядро само возьмёт `address_email`, `address_first_name`, `address_last_name` и `address_phone` и по ним найдёт или создаст пользователя.
+
+Второй канал обычно удобнее: достаточно поправить контакты, не собирая `modUser` руками.
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeGetOrderUser':
+        $orderData = $scriptProperties['orderData'];
+
+        // Нормализуем телефон до того, как ядро начнёт искать пользователя
+        $orderData['address_phone'] = preg_replace('/\D+/', '', $orderData['address_phone'] ?? '');
+
+        $modx->event->returnedValues = ['orderData' => $orderData];
+        break;
+}
+```
+
+Готовый `modUser` возвращают так:
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnBeforeGetOrderUser':
+        $orderData = $scriptProperties['orderData'];
+
+        // Кастомный поиск по внешнему ID, например из CRM
+        if (!empty($orderData['address_external_id'])) {
+            $found = $modx->getObject(
+                \MODX\Revolution\modUser::class,
+                ['username' => 'crm_' . $orderData['address_external_id']]
+            );
+
+            if ($found) {
+                $modx->event->returnedValues = ['user' => $found];
+            }
+        }
+        break;
+}
+```
+
+---
+
+## msOnGetOrderUser
+
+Вызывается **после** разрешения пользователя для заказа.
+
+### Параметры
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `resolver` | `\MiniShop3\Services\Order\OrderUserResolver` | Сервис разрешения пользователя |
+| `user` | `\MODX\Revolution\modUser` \| `null` | Финальный пользователь (или `null`, если разрешить не удалось) |

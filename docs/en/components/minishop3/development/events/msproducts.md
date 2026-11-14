@@ -1,0 +1,357 @@
+---
+title: msProducts snippet events
+---
+# msProducts snippet events
+
+Integrating third-party packages (ms3Variants, msBrands and others) into the msProducts snippet without changing MiniShop3 core code.
+
+::: tip usePackages parameter
+To let a package load its data, pass the package name in the snippet parameter:
+
+```fenom
+{'msProducts' | snippet : [
+    'parents' => 0,
+    'usePackages' => 'ms3Variants,msBrands'
+]}
+
+```
+
+Plugins check for their package in this parameter and load data only when needed.
+:::
+
+## msOnProductsLoad
+
+Fired after the product list is loaded from the database, before processing. Intended for **bulk loading** of extra data in a single query — avoids N+1.
+
+### Parameters
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `rows` | `array` | Product rows. Changes apply only through `returnedValues['rows']`. A PHP reference does not survive at this level (see below) |
+| `productIds` | `array` | Array of product IDs `[1, 2, 3, ...]` |
+| `usePackages` | `array` | Requested packages `['ms3Variants', 'msBrands']` |
+| `scriptProperties` | `array` | All snippet call parameters |
+
+After the event the list rows are updated from `returnedValues['rows']` (`EventGate::applyReturnedArray`). A list in `rows` replaces the whole product array. An associative patch of one row goes through `msOnProductPrepare`.
+
+### returnedValues
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnProductsLoad':
+        $values = &$modx->event->returnedValues;
+        // Example: flag every product with no price
+        $rows = $scriptProperties['rows'];
+        foreach ($rows as $i => $row) {
+            if (empty($row['price'])) {
+                $rows[$i]['price_hidden'] = true;
+            }
+        }
+        $values['rows'] = $rows;
+        break;
+}
+```
+
+### Basic example
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnProductsLoad':
+        // Check if our package was requested
+        $usePackages = $scriptProperties['usePackages'] ?? [];
+        if (!in_array('myPackage', $usePackages)) {
+            return;
+        }
+
+        // Load data for ALL products in one query
+        $productIds = $scriptProperties['productIds'];
+
+        // Your data loading logic
+        $myData = loadDataForProducts($productIds);
+
+        // Store in eventData for use in msOnProductPrepare
+        $modx->eventData['myPackage'] = [
+            'dataMap' => $myData,
+        ];
+        break;
+}
+
+```
+
+### Example: loading product variants (ms3Variants)
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnProductsLoad':
+        // Check if our package was requested
+        $usePackages = $scriptProperties['usePackages'] ?? [];
+        if (!in_array('ms3Variants', $usePackages)) {
+            return;
+        }
+
+        // Check if package is installed
+        if (!$modx->services->has('ms3variants')) {
+            return;
+        }
+
+        // Load variants for ALL products in one query
+        $productIds = $scriptProperties['productIds'];
+        $variantService = $modx->services->get('ms3variants_variant_service');
+
+        // Store in eventData for msOnProductPrepare
+        $modx->eventData['ms3variants'] = [
+            'variantsMap' => $variantService->getVariantsForProducts($productIds, ['active' => true]),
+        ];
+        break;
+}
+
+```
+
+---
+
+## msOnProductPrepare
+
+Fired when preparing each product for output. Used to attach data loaded in `msOnProductsLoad` to the current product.
+
+### Parameters
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `row` | `array` | Product data. Changes apply only through `returnedValues['row']`. A PHP reference does not survive at this level (see below) |
+| `productId` | `int` | Product ID |
+| `idx` | `int` | Index of the product in the result set |
+
+After the event the row is updated from `returnedValues['row']` (a patch or a full list replacement, as in import).
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnProductPrepare':
+        $modx->event->returnedValues = [
+            'row' => ['badge' => 'sale'],
+        ];
+        break;
+}
+```
+
+::: warning Mutating `$scriptProperties['row']` by reference does not work
+Although `row` is passed as a reference on the calling side (`EventGate::invokeRaw(..., ['row' => &$rows[$k], ...])`), the PHP reference does not survive the merge pipeline of the MODX core: both `modElement::getProperties()` and `modX::invokeEvent()` use `array_merge()`, and that drops the reference. Changing `$scriptProperties['row']['field'] = ...` inside a plugin **never reaches** the template — set `$modx->event->returnedValues['row']` instead, as shown below.
+:::
+
+### Basic example
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnProductPrepare':
+        // No data — package was not requested or not installed
+        $myData = $modx->eventData['myPackage']['dataMap'] ?? null;
+        if ($myData === null) {
+            return;
+        }
+
+        $productId = $scriptProperties['productId'];
+
+        // Attach the data to the product — only through returnedValues;
+        // mutating $scriptProperties['row'] by reference never reaches the template
+        if (isset($myData[$productId])) {
+            $modx->event->returnedValues = [
+                'row' => ['my_field' => $myData[$productId]],
+            ];
+        }
+        break;
+}
+
+```
+
+### Example: attaching variants (ms3Variants)
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnProductPrepare':
+        // No data — package was not requested
+        $variantsMap = $modx->eventData['ms3variants']['variantsMap'] ?? null;
+        if ($variantsMap === null) {
+            return;
+        }
+
+        $productId = $scriptProperties['productId'];
+
+        // Attach the variants — only through returnedValues (see the warning above)
+        if (isset($variantsMap[$productId])) {
+            $row = [
+                'variants' => $variantsMap[$productId],
+                'variants_count' => count($variantsMap[$productId]),
+                'variants_json' => json_encode($variantsMap[$productId]),
+                'has_variants' => true,
+            ];
+        } else {
+            $row = [
+                'variants' => [],
+                'variants_count' => 0,
+                'variants_json' => '[]',
+                'has_variants' => false,
+            ];
+        }
+
+        $modx->event->returnedValues = ['row' => $row];
+        break;
+}
+
+```
+
+---
+
+## Full integration plugin example
+
+Plugin that adds a "New" badge to products created in the last 7 days.
+
+```php
+<?php
+/**
+ * Plugin: Product badges
+ * Events: msOnProductsLoad, msOnProductPrepare
+ */
+
+switch ($modx->event->name) {
+
+    case 'msOnProductsLoad':
+        // Check parameter
+        $usePackages = $scriptProperties['usePackages'] ?? [];
+        if (!in_array('msBadges', $usePackages)) {
+            return;
+        }
+
+        $rows = $scriptProperties['rows'];
+        $weekAgo = strtotime('-7 days');
+
+        // Mark products created in the last 7 days
+        $newProducts = [];
+        foreach ($rows as $row) {
+            if (strtotime($row['createdon']) > $weekAgo) {
+                $newProducts[$row['id']] = true;
+            }
+        }
+
+        // Store for msOnProductPrepare
+        $modx->eventData['msBadges'] = [
+            'newProducts' => $newProducts,
+        ];
+        break;
+
+    case 'msOnProductPrepare':
+        $badgesData = $modx->eventData['msBadges'] ?? null;
+        if ($badgesData === null) {
+            return;
+        }
+
+        $productId = $scriptProperties['productId'];
+        $row = $scriptProperties['row'];
+
+        $badges = [];
+
+        // "New" badge
+        if (!empty($badgesData['newProducts'][$productId])) {
+            $badges[] = [
+                'type' => 'new',
+                'label' => 'New',
+                'color' => '#28a745',
+            ];
+        }
+
+        // "Sale" badge (if old_price exists)
+        if (!empty($row['old_price']) && $row['old_price'] > $row['price']) {
+            $discount = round((($row['old_price'] - $row['price']) / $row['old_price']) * 100);
+            $badges[] = [
+                'type' => 'sale',
+                'label' => "-{$discount}%",
+                'color' => '#dc3545',
+            ];
+        }
+
+        // Write through returnedValues (see the warning above)
+        $modx->event->returnedValues = [
+            'row' => [
+                'badges' => $badges,
+                'badges_json' => json_encode($badges),
+                'has_badges' => !empty($badges),
+            ],
+        ];
+        break;
+}
+
+```
+
+### Using in template
+
+```fenom
+{'msProducts' | snippet : [
+    'parents' => 0,
+    'usePackages' => 'msBadges',
+    'tpl' => 'tpl.msProducts.badges'
+]}
+
+```
+
+**Chunk tpl.msProducts.badges:**
+
+```fenom
+<div class="product-card">
+    {if $has_badges}
+        <div class="product-badges">
+            {foreach $badges as $badge}
+                <span class="badge" style="background: {$badge.color}">
+                    {$badge.label}
+                </span>
+            {/foreach}
+        </div>
+    {/if}
+
+    <h3>{$pagetitle}</h3>
+    <div class="price">{$price} руб.</div>
+</div>
+
+```
+
+---
+
+## Passing data between events
+
+Use `$modx->eventData` to pass data between events:
+
+```php
+// In msOnProductsLoad — store
+$modx->eventData['myPackage'] = [
+    'dataMap' => $loadedData,
+    'settings' => $mySettings,
+];
+
+// In msOnProductPrepare — read
+$dataMap = $modx->eventData['myPackage']['dataMap'] ?? null;
+$settings = $modx->eventData['myPackage']['settings'] ?? [];
+
+```
+
+::: warning Data isolation
+Use your package name as the key in `eventData` to avoid conflicts with other plugins.
+:::
+
+---
+
+## Performance
+
+1. **msOnProductsLoad** — runs **once** to load data for all products
+2. **msOnProductPrepare** — runs per product but only attaches already-loaded data
+
+This avoids the N+1 query problem:
+
+```
+
+❌ Without bulk loading: 1 query for list + N queries for variants = O(N+1)
+✅ With bulk loading:     1 query for list + 1 query for all variants = O(2)
+
+```

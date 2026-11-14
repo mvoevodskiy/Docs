@@ -1,0 +1,159 @@
+---
+title: "Справочник типов"
+description: "35 типов Free и 27 Pro в инспекторе PageBuilder"
+---
+
+# Справочник типов полей
+
+35 типов в Free и 27 в Pro. Большинство Pro-типов включается флагом `advanced-fields`. Типы `datasource`, `form`, `product` и `products` дополнительно требуют capabilities `datasources`, `forms` и `minishop3`.
+
+Общие meta-ключи (`tab`, `width`, `description`, `default`, `active`): [обзор](overview#общие-свойства-поля).
+
+<!-- ![Типы полей в инспекторе](/components/pagebuilder/screenshots/mgr-section-inspector.jpg) -->
+
+## Free
+
+| type | Страница | Вывод и пример |
+| --- | --- | --- |
+| `text` | [text](text) | [JSON и Fenom](text#vyvod-v-section-data) |
+| `email` | [email](email) | [JSON и Fenom](email#vyvod-v-section-data) |
+| `textarea` | [textarea](textarea) | [JSON и Fenom](textarea#vyvod-v-section-data) |
+| `richtext` | [richtext](richtext) | [JSON и Fenom](richtext#vyvod-v-section-data) |
+| `ace` | [ace](ace) | [JSON и Fenom](ace#vyvod-v-section-data) |
+| `number` | [number](number) | [JSON и Fenom](number#vyvod-v-section-data) |
+| `url` | [url](url) | [JSON и Fenom](url#vyvod-v-section-data) |
+| `slug` | [slug](slug) | [JSON и Fenom](slug#vyvod-v-section-data) |
+| `select` | [select](select) | [JSON и Fenom](select#vyvod-v-section-data) |
+| `multiselect` | [multiselect](multiselect) | [JSON и Fenom](multiselect#vyvod-v-section-data) |
+| `radio` | [radio](radio) | [JSON и Fenom](radio#vyvod-v-section-data) |
+| `checkbox` | [checkbox](checkbox) | [JSON и Fenom](checkbox#vyvod-v-section-data) |
+| `checkboxgroup` | [checkboxgroup](checkboxgroup) | [JSON и Fenom](checkboxgroup#vyvod-v-section-data) |
+| `yesno` | [yesno](yesno) | [JSON и Fenom](yesno#vyvod-v-section-data) |
+| `toggle` | [toggle](toggle) | [JSON и Fenom](toggle#vyvod-v-section-data) |
+| `date` | [date](date) | [JSON и Fenom](date#vyvod-v-section-data) |
+| `time` | [time](time) | [JSON и Fenom](time#vyvod-v-section-data) |
+| `datetime` | [datetime](datetime) | [JSON и Fenom](datetime#vyvod-v-section-data) |
+| `color` | [color](color) | [JSON и Fenom](color#vyvod-v-section-data) |
+| `colorpalette` | [colorpalette](colorpalette) | [JSON и Fenom](colorpalette#vyvod-v-section-data) |
+| `file` | [file](file) | [JSON и Fenom](file#vyvod-v-section-data) |
+| `image` | [image](image) | [JSON и Fenom](image#vyvod-v-section-data) |
+| `migx` | [migx](migx) | [JSON и Fenom](migx#vyvod-v-section-data) |
+| `video` | [video](video) | [JSON и Fenom](video#vyvod-v-section-data) |
+| `button` | [button](button) | [JSON и Fenom](button#vyvod-v-section-data) |
+| `resourcelist` | [resourcelist](resourcelist) | [JSON и Fenom](resourcelist#vyvod-v-section-data) |
+| `hidden` | [hidden](hidden) | [JSON и Fenom](hidden#vyvod-v-section-data) |
+| `readonly` | [readonly](readonly) | [JSON и Fenom](readonly#vyvod-v-section-data) |
+| `xtype` | [xtype](xtype) | [JSON и Fenom](xtype#vyvod-v-section-data) |
+| `heading` | [heading](heading) | [JSON и Fenom](heading#vyvod-v-section-data) |
+| `repeater` | [repeater](repeater) | [JSON и Fenom](repeater#vyvod-v-section-data) |
+| `tag` | [tag](tag) | [JSON и Fenom](tag#vyvod-v-section-data) |
+| `tv` | [tv](tv) | [JSON и Fenom](tv#vyvod-v-section-data) |
+| `chunk` | [chunk](chunk) | [JSON и Fenom](chunk#vyvod-v-section-data) |
+| `snippet` | [snippet](snippet) | [JSON и Fenom](snippet#vyvod-v-section-data) |
+
+## Pro
+
+| type | Слой | Страница | Вывод и пример |
+| --- | --- | --- | --- |
+| `relation` | Pro, `advanced-fields` | [relation](relation) | [JSON и Fenom](relation#vyvod-v-section-data) |
+| `multirelation` | Pro, `advanced-fields` | [multirelation](multirelation) | [JSON и Fenom](multirelation#vyvod-v-section-data) |
+| `gallery` | Pro, `advanced-fields` | [gallery](gallery) | [JSON и Fenom](gallery#vyvod-v-section-data) |
+| `map` | Pro, `advanced-fields` | [map](map) | [JSON и Fenom](map#vyvod-v-section-data) |
+| `table` | Pro, `advanced-fields` | [table](table) | Сетка в инспекторе. [JSON и Fenom](table#vyvod-v-section-data) |
+| `embeddedTable` | Pro, `advanced-fields` | [embeddedTable](embeddedTable) | [JSON и Fenom](embeddedTable#vyvod-v-section-data) |
+| `keyvalue` | Pro, `advanced-fields` | [keyvalue](keyvalue) | [JSON и Fenom](keyvalue#vyvod-v-section-data) |
+| `editorjs` | Pro, `advanced-fields` | [editorjs](editorjs) | Новое поле создаётся только в Pro. Уже сохранённое открывается и пишется |
+| `currency` | Pro, `advanced-fields` | [currency](currency) | [JSON и Fenom](currency#vyvod-v-section-data) |
+| `imask` | Pro, `advanced-fields` | [imask](imask) | [JSON и Fenom](imask#vyvod-v-section-data) |
+| `combo` | Pro, `advanced-fields` | [combo](combo) | [JSON и Fenom](combo#vyvod-v-section-data) |
+| `multicombo` | Pro, `advanced-fields` | [multicombo](multicombo) | [JSON и Fenom](multicombo#vyvod-v-section-data) |
+| `tablecombo` | Pro, `advanced-fields` | [tablecombo](tablecombo) | Выпадающий список из класса MODX. [JSON и Fenom](tablecombo#vyvod-v-section-data) |
+| `tablemulticombo` | Pro, `advanced-fields` | [tablemulticombo](tablemulticombo) | Несколько значений из класса MODX. [JSON и Fenom](tablemulticombo#vyvod-v-section-data) |
+| `fieldset` | Pro, `advanced-fields` | [fieldset](fieldset) | [JSON и Fenom](fieldset#vyvod-v-section-data) |
+| `dependent` | Pro, `advanced-fields` | [dependent](dependent) | [JSON и Fenom](dependent#vyvod-v-section-data) |
+| `jsongrid` | Pro, `advanced-fields` | [jsongrid](jsongrid) | [JSON и Fenom](jsongrid#vyvod-v-section-data) |
+| `daterange` | Pro, `advanced-fields` | [daterange](daterange) | [JSON и Fenom](daterange#vyvod-v-section-data) |
+| `icon` | Pro, `advanced-fields` | [icon](icon) | [JSON и Fenom](icon#vyvod-v-section-data) |
+| `link` | Pro, `advanced-fields` | [link](link) | [JSON и Fenom](link#vyvod-v-section-data) <!-- markdownlint-disable-line MD059 --> |
+| `documents` | Pro, `advanced-fields` | [documents](documents) | [JSON и Fenom](documents#vyvod-v-section-data) |
+| `address` | Pro, `advanced-fields` | [address](address) | [JSON и Fenom](address#vyvod-v-section-data) |
+| `schedule` | Pro, `advanced-fields` | [schedule](schedule) | [JSON и Fenom](schedule#vyvod-v-section-data) |
+| `datasource` | Pro, capability `datasources` | [datasource](datasource) | [JSON и Fenom](datasource#vyvod-v-section-data) |
+| `form` | Pro, capability `forms` | [form](form) | [JSON и Fenom](form#vyvod-v-section-data) |
+| `product` | Pro, capability `minishop3` | [product](product) | [JSON и Fenom](product#vyvod-v-section-data) |
+| `products` | Pro, capability `minishop3` | [products](products) | [JSON и Fenom](products#vyvod-v-section-data) |
+
+## Составные сценарии
+
+### showWhen
+
+Поле показывается, если значение другого поля совпало с `value` (не `equals`).
+
+```json
+{
+  "name": "extra_url",
+  "type": "url",
+  "label": "Доп. ссылка",
+  "showWhen": { "field": "show_extra", "value": true }
+}
+```
+
+Реализация: `fieldVisibility.ts`.
+
+### optionsSource
+
+```json
+{
+  "name": "template",
+  "type": "tablecombo",
+  "label": "Шаблон",
+  "optionsSource": {
+    "class": "modTemplate",
+    "valueField": "id",
+    "labelField": "templatename",
+    "limit": 100
+  }
+}
+```
+
+Список опций: connector `mgr/field/options`. Хук: `pbOnFieldValues`.
+
+| `class` | Назначение |
+| --- | --- |
+| `modResource` | Ресурсы |
+| `modUser` | Пользователи |
+| `modCategory` | Категории |
+| `modTemplate` | Шаблоны |
+| `modTemplateVar` | TV |
+| `modChunk` | Чанки |
+| `modSnippet` | Сниппеты |
+| `modPlugin` | Плагины |
+
+Другой класс не загружается: процессор вернёт пустой список.
+
+`optionsSource.limit`: по умолчанию 100, максимум 500.
+
+### Таблицы ресурса
+
+Вкладка **Tables** на ресурсе или tab type `table` в Collections. Поле `embeddedTable` хранит `table_key` и настройки выборки. См. [настройку таблиц](../settings) и [панель управления](../integration).
+
+## Алиасы
+
+Полный список в `FIELD_TYPE_ALIASES` (`fieldDefaults.ts`). Частые:
+
+| Алиас | Тип |
+| --- | --- |
+| `relationship` | `relation` |
+| `resources` | `resourcelist` |
+| `boolean`, `listyesno` | `yesno` |
+| `onlyreading` | `readonly` |
+| `colorpicker` | `color` |
+| `editor_js` | `editorjs` |
+| `table_combo` | `tablecombo` |
+| `table_multicombo` | `tablemulticombo` |
+| `templatevar`, `template_var` | `tv` |
+
+## Дальше
+
+- [Обзор полей](overview)
+- [Инспектор](../integration)

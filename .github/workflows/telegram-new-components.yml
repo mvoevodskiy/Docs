@@ -1,0 +1,320 @@
+# Уведомление в Telegram о новых компонентах после Deploy на master.
+#
+# Ручной запуск (один или несколько slug через запятую):
+#   gh workflow run telegram-new-components.yml -f component=mspricetiers
+#   gh workflow run telegram-new-components.yml -f component=mspricetiers,mscurrency
+#
+# Либо Actions → Telegram New Components → Run workflow → поле component.
+name: Telegram New Components
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'Slug компонента (через запятую — несколько), напр. mspricetiers'
+        required: false
+        type: string
+  workflow_run:
+    workflows:
+      - Deploy
+    types:
+      - completed
+
+jobs:
+  notify:
+    if: |
+      github.repository_owner == 'modx-pro' &&
+      (
+        github.event_name != 'workflow_run' ||
+        (
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'master'
+        )
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Detect new components
+        id: detect
+        shell: bash
+        env:
+          MANUAL_COMPONENTS: ${{ github.event_name == 'workflow_dispatch' && inputs.component || '' }}
+        run: |
+          set -euo pipefail
+
+          trim_quotes() {
+            local value="$1"
+            value="${value%\"}"
+            value="${value#\"}"
+            value="${value%\'}"
+            value="${value#\'}"
+            printf "%s" "$value"
+          }
+
+          extract_frontmatter() {
+            local key="$1"
+            local file="$2"
+            awk -v key="$key" '
+              BEGIN { in_fm = 0 }
+              /^---[[:space:]]*$/ {
+                if (in_fm == 0) { in_fm = 1; next }
+                exit
+              }
+              in_fm == 1 {
+                line = $0
+                sub(/^[[:space:]]+/, "", line)
+                if (line ~ ("^" key ":[[:space:]]*")) {
+                  sub("^" key ":[[:space:]]*", "", line)
+                  print line
+                  exit
+                }
+              }
+            ' "$file"
+          }
+
+          escape_html() {
+            local text="$1"
+            text="${text//&/&amp;}"
+            text="${text//</&lt;}"
+            text="${text//>/&gt;}"
+            text="${text//\"/&quot;}"
+            printf "%s" "$text"
+          }
+
+          resolve_component_file() {
+            local slug="$1"
+            if [[ -f "docs/components/${slug}/index.md" ]]; then
+              printf "docs/components/%s/index.md" "$slug"
+            elif [[ -f "docs/components/${slug}.md" ]]; then
+              printf "docs/components/%s.md" "$slug"
+            else
+              return 1
+            fi
+          }
+
+          # OG-картинки создаются при сборке и в git не хранятся. После Deploy (workflow_run)
+          # картинка уже на сайте; при ручном запуске её там может не быть — тогда логотип из frontmatter
+          resolve_logo_url() {
+            local slug="$1"
+            local frontmatter_logo="$2"
+            local og_url="https://docs.modx.pro/og/${slug}.png"
+
+            if [[ "$(curl -fsIL --max-time 15 -o /dev/null -w '%{content_type}' "$og_url")" == image/png* ]]; then
+              printf "%s" "$og_url"
+              return 0
+            fi
+            echo "::warning::OG-картинка недоступна (${og_url}), берём логотип из frontmatter" >&2
+
+            if [[ -n "$frontmatter_logo" ]]; then
+              printf "%s" "$frontmatter_logo"
+            fi
+          }
+
+          ADDED_COMPONENTS=""
+
+          if [[ -n "$MANUAL_COMPONENTS" ]]; then
+            IFS=',' read -ra SLUGS <<< "$MANUAL_COMPONENTS"
+            for raw_slug in "${SLUGS[@]}"; do
+              slug="$(printf "%s" "$raw_slug" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+              [[ -z "$slug" ]] && continue
+
+              file="$(resolve_component_file "$slug" || true)"
+              if [[ -z "$file" ]]; then
+                echo "::error::Документация компонента не найдена: ${slug} (ожидается docs/components/${slug}/index.md)"
+                exit 1
+              fi
+
+              ADDED_COMPONENTS+="${slug}|${file}"$'\n'
+            done
+          else
+            if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+              AFTER_SHA="${{ github.event.workflow_run.head_sha }}"
+              BEFORE_SHA="$(git rev-parse "${AFTER_SHA}^" 2>/dev/null || true)"
+            else
+              AFTER_SHA="${{ github.sha }}"
+              BEFORE_SHA="${{ github.event.before }}"
+              if [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+                BEFORE_SHA="$(git rev-parse "${AFTER_SHA}^" 2>/dev/null || true)"
+              fi
+            fi
+
+            if [[ -z "$BEFORE_SHA" ]]; then
+              echo "has_new_components=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            ADDED_COMPONENTS="$(
+              git diff --name-status "$BEFORE_SHA" "$AFTER_SHA" -- docs/components \
+                | awk '$1 == "A" {print $2}' \
+                | while IFS= read -r file; do
+                    slug=""
+                    if [[ "$file" =~ ^docs/components/([^/]+)/index\.md$ ]]; then
+                      slug="${BASH_REMATCH[1]}"
+                    elif [[ "$file" =~ ^docs/components/([^/]+)\.md$ ]]; then
+                      slug="${BASH_REMATCH[1]}"
+                    fi
+                    if [[ -n "$slug" && "$slug" != "index" ]]; then
+                      printf "%s|%s\n" "$slug" "$file"
+                    fi
+                  done \
+                | awk -F'|' '!seen[$1]++' \
+                | sort -t'|' -k1,1 || true
+            )"
+          fi
+
+          if [[ -z "$ADDED_COMPONENTS" ]]; then
+            echo "has_new_components=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          notifications_file="${RUNNER_TEMP}/telegram-notifications.json"
+          printf "[" > "$notifications_file"
+          first=1
+          count=0
+
+          while IFS='|' read -r slug file; do
+            [[ -z "$slug" ]] && continue
+            [[ -z "$file" ]] && continue
+
+            title="$(extract_frontmatter "title" "$file" || true)"
+            description="$(extract_frontmatter "description" "$file" || true)"
+            author="$(extract_frontmatter "author" "$file" || true)"
+            logo="$(extract_frontmatter "logo" "$file" || true)"
+
+            title="$(trim_quotes "$title")"
+            description="$(trim_quotes "$description")"
+            author="$(trim_quotes "$author")"
+            logo="$(trim_quotes "$logo")"
+            logo="$(resolve_logo_url "$slug" "$logo" || true)"
+
+            [[ -z "$title" ]] && title="$slug"
+            [[ -z "$description" ]] && description="Описание не указано"
+            [[ -z "$author" ]] && author="Автор не указан"
+
+            title_html="$(escape_html "$title")"
+            description_html="$(escape_html "$description")"
+            author_html="$(escape_html "$author")"
+
+            if [[ "$file" =~ /index\.md$ ]]; then
+              doc_url="https://docs.modx.pro/components/${slug}/"
+            else
+              doc_url="https://docs.modx.pro/components/${slug}"
+            fi
+
+            message=$'Добавлен новый компонент в документацию\n\n'
+            message+="<b>${title_html}</b> — ${description_html}"$'\n'
+            message+="Автор: ${author_html}"$'\n'
+            message+="<a href=\"${doc_url}\">Ознакомиться с документацией</a>"
+
+            if [[ "$first" -eq 0 ]]; then
+              printf "," >> "$notifications_file"
+            fi
+            first=0
+
+            jq -n \
+              --arg message "$message" \
+              --arg logo "$logo" \
+              '{
+                message: $message,
+                logo: (if ($logo | length) > 0 then $logo else null end)
+              }' \
+              >> "$notifications_file"
+
+            count=$((count + 1))
+          done <<< "$ADDED_COMPONENTS"
+
+          printf "\n]" >> "$notifications_file"
+
+          echo "has_new_components=true" >> "$GITHUB_OUTPUT"
+          echo "notifications_file=${notifications_file}" >> "$GITHUB_OUTPUT"
+          echo "notifications_count=${count}" >> "$GITHUB_OUTPUT"
+
+      - name: Send telegram notifications
+        if: steps.detect.outputs.has_new_components == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: "-1001051277497"
+          NOTIFICATIONS_FILE: ${{ steps.detect.outputs.notifications_file }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          send_message() {
+            local payload="$1"
+            local response http_code body
+
+            response="$(curl -sS -w "\n%{http_code}" \
+              -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -H "Content-Type: application/json" \
+              -d "$payload")"
+            http_code="${response##*$'\n'}"
+            body="${response%$'\n'*}"
+
+            if [[ "$http_code" != "200" ]] || ! jq -e '.ok == true' <<< "$body" >/dev/null; then
+              echo "::error::Telegram sendMessage failed (HTTP ${http_code}): ${body}"
+              exit 1
+            fi
+          }
+
+          send_photo_file() {
+            local photo_file="$1"
+            local caption="$2"
+            local response http_code body
+
+            response="$(curl -sS -w "\n%{http_code}" \
+              -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto" \
+              -F "chat_id=${TELEGRAM_CHAT_ID}" \
+              -F "photo=@${photo_file}" \
+              -F "caption=${caption}" \
+              -F "parse_mode=HTML")"
+            http_code="${response##*$'\n'}"
+            body="${response%$'\n'*}"
+
+            if [[ "$http_code" != "200" ]] || ! jq -e '.ok == true' <<< "$body" >/dev/null; then
+              echo "::warning::Telegram sendPhoto (file) failed (HTTP ${http_code}): ${body}" >&2
+              return 1
+            fi
+          }
+
+          send_photo_url() {
+            local photo_url="$1"
+            local caption="$2"
+            local tmp_file response http_code body
+
+            tmp_file="$(mktemp --suffix=.png)"
+            if ! curl -fsSL "$photo_url" -o "$tmp_file"; then
+              echo "::warning::Не удалось скачать логотип: ${photo_url}" >&2
+              rm -f "$tmp_file"
+              return 1
+            fi
+
+            if send_photo_file "$tmp_file" "$caption"; then
+              rm -f "$tmp_file"
+              return 0
+            fi
+
+            rm -f "$tmp_file"
+            return 1
+          }
+
+          while IFS= read -r item; do
+            message="$(jq -r '.message' <<< "$item")"
+            logo="$(jq -r '.logo // empty' <<< "$item")"
+            sent=false
+
+            if [[ -n "$logo" ]]; then
+              send_photo_url "$logo" "$message" && sent=true || true
+            fi
+
+            if [[ "$sent" == "false" ]]; then
+              payload="$(jq -n \
+                --arg chat_id "$TELEGRAM_CHAT_ID" \
+                --arg text "$message" \
+                '{chat_id: $chat_id, text: $text, parse_mode: "HTML"}')"
+              send_message "$payload"
+            fi
+          done < <(jq -c '.[]' "$NOTIFICATIONS_FILE")

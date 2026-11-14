@@ -1,0 +1,118 @@
+---
+title: "Товар в фокусе"
+description: "Крупная карточка одного товара с галереей, ценой и корзиной. Слой Pro."
+---
+
+# Товар в фокусе
+
+Hero магазина или «товар недели»: крупное фото, цена, описание и добавление в корзину. Один товар из msProducts.
+
+![Товар в фокусе](/components/pagebuilder/screenshots/sections/product_spotlight.jpg)
+
+::: info
+Требуются PageBuilder Pro и miniShop3.
+:::
+
+## Один товар крупно
+
+- Один товар крупно: галерея, цена, корзина
+- Промо «товар недели» без отдельного шаблона
+- msProducts по relation на ресурс
+
+## Промо-сценарии
+
+- На главной: промо SKU
+- На лендинге бренда: флагман
+- На странице акции: товар со скидкой
+
+## Примеры страниц
+
+- Главная магазина: [Product spotlight](product_spotlight) → [Products carousel](products_carousel)
+- Акция: [Promo banner](promo_banner) → [Product spotlight](product_spotlight)
+
+## Relation на товар
+
+Поиск товара идёт в `mgr/ms3/products/search`. Поле `product` обязательно. Тип помечен `"cacheable": false`.
+
+Перед chunk `ProSectionRenderSupport` пишет `product_id` и `pb_product_resource`. Chunk берёт `$pb_product_resource`. Если id нет, посетитель видит «Товар не выбран или недоступен.»
+
+## Похожие секции
+
+- [Промо-баннер](promo_banner) с текстом и optional product
+- [Сетка](products_grid), если нужно много SKU
+
+## Параметры блока
+
+| Параметр | Значение |
+| --- | --- |
+| key | `product_spotlight` |
+| Слой | Pro |
+| Категория | магазин (`commerce`) |
+| Chunk | `pagebuilderpro_product_spotlight` |
+| Требования | pro, minishop3 |
+
+## Поля в редакторе
+
+Заполните поля в инспекторе секции на ресурсе. Описание типов полей: [справочник типов](../fields/types).
+
+### Заголовок (`title`)
+
+Тип [text](../fields/text#vyvod-v-section-data). Необязательное.
+
+### Товар (`product`)
+
+Тип [relation](../fields/relation#vyvod-v-section-data). Обязательное. Autocomplete по ресурсам MODX в поле инспектора.
+
+## Что видит посетитель
+
+Двухколоночный `pb-product-spotlight` через msProducts.
+
+## Данные секции {#vyvod-v-section-data}
+
+Пример JSON после сохранения секции. Для media, video и map значения на выводе могут быть обогащены:
+
+```json
+{
+  "title": "Заголовок секции",
+  "product": 201
+}
+```
+
+## Шаблон chunk
+
+Fenom chunk `pagebuilderpro_product_spotlight`:
+
+```fenom
+{set $productId = $pb_product_resource !: ($product_id !: 0)}
+{set $listing = ''}
+{if $productId}
+  {set $listing = $modx->runSnippet('msProducts', [
+    'parents' => 0,
+    'resources' => $productId,
+    'limit' => 1,
+    'tpl' => 'pagebuilderpro_ms3_product_spotlight_row',
+    'includeVendorFields' => '*',
+    'includeOptions' => 'color,size',
+    'withCurrency' => 1,
+    'showZeroPrice' => 1
+  ])}
+{/if}
+<section class="pb-section pb-section--product-spotlight pb-product-spotlight{if $cssClass} {$cssClass|escape}{/if}" data-pb-section="product_spotlight"{if $id} id="pb-{$id|escape}"{/if}>
+  <div class="pb-section__inner pb-product-spotlight__inner">
+    {if $title}
+      <h2 class="pb-heading">{$title|escape}</h2>
+    {/if}
+    {if $listing}
+      {$listing}
+    {else}
+      <p class="pb-listing__empty">{'pagebuilder_fe_listing_empty_product' | lexicon}</p>
+    {/if}
+  </div>
+</section>
+```
+
+## Связанные страницы
+
+- [Каталог секций](index)
+- [Обзор полей](../fields/overview)
+- [Вывод на сайте](../frontend)

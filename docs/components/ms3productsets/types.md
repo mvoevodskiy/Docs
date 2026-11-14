@@ -1,0 +1,332 @@
+---
+title: Типы подборок
+---
+# Типы подборок ms3ProductSets
+
+Тип задаёт, какие ручные связи читаются из `ms3_product_sets` и какая авто-логика запускается, если связей нет.
+
+## Общие правила (для всех типов)
+
+1. Сначала проверяются ручные связи в `ms3_product_sets` для (`product_id`, `type`). Неопубликованные и удалённые ID выкидываются (`msps_filter_valid_product_ids`). Один битый ID не обнуляет блок. Параметр `showUnpublished=true` эти ID из таблицы не вернёт.
+2. Если ручных связей нет и `ms3productsets.auto_recommendation` = 1, включается авто-логика типа. Тип `vip` настройку не читает: пустая таблица всё равно берёт `vip_set_{set_id}`.
+3. При пустом результате:
+   - `hideIfEmpty=true` → возвращается пустая строка `''`
+   - `hideIfEmpty=false` → возвращается `emptyTpl`
+4. `max_items` ограничивается диапазоном `1..100`.
+5. Если `return=ids`, сниппет возвращает только список ID.
+
+## Параметры, которые чаще всего влияют на результат
+
+- `resource_id` / `productId`: базовый товар.
+- `category_id`: категория для `msps_get_auto_recommendations` (`buy_together` после пустого co-purchase, `cart_suggestion`, `popcorn`, `auto`, `custom`). На `similar` и на SQL `auto_sales` не влияет. Из папки берутся до 100 последних id (не больше `limit` × 2). Затем список перемешивается.
+- `set_id`: номер VIP-набора (`vip_set_{set_id}`).
+- `exclude_ids`: исключаемые ID.
+
+## 1. `buy_together`
+
+### Для менеджера
+
+Блок «С этим товаром покупают» на карточке товара.
+
+### Для разработчика
+
+Приоритет:
+
+1. Ручные связи `type=buy_together`.
+2. Если пусто: статистика co-purchase (`msps_get_auto_sales`: товары из тех же заказов MiniShop3, что и текущий).
+3. Если статистики нет: `msps_get_auto_recommendations` по категории товара или `category_id`.
+
+`exclude_ids` применяется и к ручной, и к авто-ветке.
+
+::: code-group
+
+```fenom
+{'ms3ProductSets' | snippet : [
+  'type' => 'buy_together',
+  'resource_id' => $_modx->resource.id,
+  'max_items' => 6,
+  'tpl' => 'tplSetItem'
+]}
+```
+
+```modx
+[[!ms3ProductSets?
+  &type=`buy_together`
+  &resource_id=`[[*id]]`
+  &max_items=`6`
+  &tpl=`tplSetItem`
+]]
+```
+
+:::
+
+## 2. `similar`
+
+### Для менеджера
+
+Альтернативы из той же категории.
+
+### Для разработчика
+
+Приоритет:
+
+1. Ручные связи `type=similar`.
+2. Если пусто: `msps_get_similar_products`:
+   - категория (`parent`) текущего товара. `category_id` не читается
+   - из папки берутся до 100 последних id (не больше `limit` × 2), затем список перемешивается
+   - исключаются текущий товар и `exclude_ids`
+
+::: code-group
+
+```fenom
+{'ms3ProductSets' | snippet : [
+  'type' => 'similar',
+  'resource_id' => $_modx->resource.id,
+  'exclude_ids' => $_modx->resource.id,
+  'max_items' => 8,
+  'tpl' => 'tplSetItem'
+]}
+```
+
+```modx
+[[!ms3ProductSets?
+  &type=`similar`
+  &resource_id=`[[*id]]`
+  &exclude_ids=`[[*id]]`
+  &max_items=`8`
+  &tpl=`tplSetItem`
+]]
+```
+
+:::
+
+## 3. `popcorn`
+
+### Для менеджера
+
+Компактный блок импульсных и дополнительных покупок.
+
+### Для разработчика
+
+Приоритет:
+
+1. Ручные связи `type=popcorn`.
+2. Если пусто: авто по категории текущего товара.
+3. Если снова пусто: запасной вариант на общий авто-подбор.
+
+::: code-group
+
+```fenom
+{'ms3ProductSets' | snippet : [
+  'type' => 'popcorn',
+  'resource_id' => $_modx->resource.id,
+  'max_items' => 4,
+  'tpl' => 'tplPopcorn'
+]}
+```
+
+```modx
+[[!ms3ProductSets?
+  &type=`popcorn`
+  &resource_id=`[[*id]]`
+  &max_items=`4`
+  &tpl=`tplPopcorn`
+]]
+```
+
+:::
+
+## 4. `cart_suggestion`
+
+### Для менеджера
+
+Рекомендации в корзине или перед оформлением заказа.
+
+### Для разработчика
+
+Приоритет:
+
+1. Ручные связи `type=cart_suggestion`.
+2. Если пусто: авто по `category_id` или категории `resource_id`.
+
+::: code-group
+
+```fenom
+{'ms3ProductSets' | snippet : [
+  'type' => 'cart_suggestion',
+  'category_id' => 5,
+  'resource_id' => 0,
+  'max_items' => 6,
+  'tpl' => 'tplSetItem'
+]}
+```
+
+```modx
+[[!ms3ProductSets?
+  &type=`cart_suggestion`
+  &category_id=`5`
+  &resource_id=`0`
+  &max_items=`6`
+  &tpl=`tplSetItem`
+]]
+```
+
+:::
+
+## 5. `auto_sales`
+
+### Для менеджера
+
+Рекомендации по фактическим заказам («часто покупают вместе»).
+
+### Для разработчика
+
+Приоритет:
+
+1. Ручные связи `type=auto_sales`.
+2. Если пусто: SQL co-purchase. Товары из **тех же заказов**, где есть текущий товар (`ms3_order_product` self-join, статусы заказа `2,4,5`), сортировка по частоте. `category_id` в запрос не входит. Список из заказов не чистится от снятых с публикации до отрисовки `msProducts`.
+3. Если SQL вернул пустой массив: запасной вариант `similar`. Непустой список снятых с публикации товаров `similar` не включает.
+
+::: code-group
+
+```fenom
+{'ms3ProductSets' | snippet : [
+  'type' => 'auto_sales',
+  'resource_id' => $_modx->resource.id,
+  'max_items' => 6,
+  'tpl' => 'tplSetItem'
+]}
+```
+
+```modx
+[[!ms3ProductSets?
+  &type=`auto_sales`
+  &resource_id=`[[*id]]`
+  &max_items=`6`
+  &tpl=`tplSetItem`
+]]
+```
+
+:::
+
+## 6. `vip`
+
+### Для менеджера
+
+Ручные промо-наборы и акционные витрины.
+
+### Для разработчика
+
+Приоритет:
+
+1. Ручные связи `type=vip`.
+2. Если пусто: `ms3productsets.vip_set_{set_id}`.
+
+Если `set_id` не задан или меньше 1, используется `set_id=1`.
+
+::: code-group
+
+```fenom
+{'ms3ProductSets' | snippet : [
+  'type' => 'vip',
+  'set_id' => 1,
+  'max_items' => 8,
+  'tpl' => 'tplSetVIP'
+]}
+```
+
+```modx
+[[!ms3ProductSets?
+  &type=`vip`
+  &set_id=`1`
+  &max_items=`8`
+  &tpl=`tplSetVIP`
+]]
+```
+
+:::
+
+## 7. `auto`
+
+### Для менеджера
+
+Универсальные рекомендации для главной, категорий и лендингов.
+
+### Для разработчика
+
+Приоритет:
+
+1. Ручные связи `type=auto`.
+2. Если пусто: `msps_get_auto_recommendations`:
+   - по категории товара (`resource_id`)
+   - или по заданному `category_id`
+
+::: code-group
+
+```fenom
+{'ms3ProductSets' | snippet : [
+  'type' => 'auto',
+  'category_id' => 5,
+  'resource_id' => 0,
+  'max_items' => 12,
+  'tpl' => 'tplSetItem'
+]}
+```
+
+```modx
+[[!ms3ProductSets?
+  &type=`auto`
+  &category_id=`5`
+  &resource_id=`0`
+  &max_items=`12`
+  &tpl=`tplSetItem`
+]]
+```
+
+:::
+
+## 8. `also-bought` и `cross-sell`
+
+Синонимы логики **buy_together** на уровне `msps_get_products_by_type`:
+
+1. Ручные связи с соответствующим `type` в таблице (если заданы).
+2. Co-purchase по заказам (`msps_get_auto_sales`).
+3. Авто по категории.
+
+В админке шаблоны создаются с типами из `MSPS_ADMIN_TEMPLATE_TYPES` (`buy_together`, `similar`, …). На сайте в параметре `type` сниппета допустимы алиасы `also-bought` и `cross-sell`.
+
+## 9. `custom`
+
+Обрабатывается как `auto`: таблица `type=custom`, иначе авто по категории.
+
+## 10. Краткая матрица запасных вариантов
+
+Цепочки авто-режима (после пустой ручной подборки):
+
+```mermaid
+flowchart LR
+  BT[buy_together / also-bought / cross-sell] --> AS1[co-purchase] --> CAT1[категория]
+  AS[auto_sales] --> AS1 --> SIM[similar]
+  SIMT[similar] --> SIM
+  POP[popcorn] --> CAT1 --> GEN[общий авто-подбор]
+  VIP[vip] --> SET[vip_set_n в настройках]
+  AUTO[auto / custom / cart_suggestion] --> CAT1
+```
+
+| Тип | Если ручной подборки нет |
+| --- | --- |
+| `buy_together` | co-purchase → авто по категории |
+| `also-bought`, `cross-sell` | как `buy_together` |
+| `similar` | похожие по категории |
+| `popcorn` | авто по категории → общий авто-подбор |
+| `cart_suggestion` | авто по категории/`category_id` |
+| `auto_sales` | co-purchase → `similar` |
+| `vip` | системная настройка `vip_set_{set_id}` |
+| `auto`, `custom` | авто по категории/каталогу |
+
+## 11. Практические рекомендации
+
+1. Для больших каталогов начинайте с `auto`/`similar` и точечно добавляйте ручные связи только для важных SKU.
+2. Для акций и сезонных подборок удобнее `vip` и системные настройки.
+3. Для `auto_sales` проверяйте, что в магазине достаточно заказов. Иначе чаще сработает запасной вариант на `similar`.
+4. Если нужен стабильный порядок, задавайте ручные связи или `sortby`. В авто-режиме порядок чаще случайный.

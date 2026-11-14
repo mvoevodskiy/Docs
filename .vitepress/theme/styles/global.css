@@ -1,0 +1,300 @@
+:root {
+  --vp-font-family-base: 'Montserrat', sans-serif;
+  --vp-shadow-6: 0px 4px 15px rgba(47, 63, 147, 0.08);
+  --vp-border: var(--vp-border-width) solid var(--vp-c-bg-soft);
+  --vp-border-width: 4px;
+  --vp-border-radius: 20px;
+
+  --vp-c-gray-1: #f7f7f7;
+
+  --vp-c-green-1: #1abc9c;
+  --vp-c-green-2: #18b495;
+  --vp-c-green-3: #1abc9c;
+  --vp-c-green-soft: rgba(26, 188, 156, 0.14);
+
+  --vp-c-brand-1: var(--vp-c-green-1);
+  --vp-c-brand-2: var(--vp-c-green-2);
+  --vp-c-brand-3: var(--vp-c-green-3);
+  --vp-c-brand-soft: var(--vp-c-green-soft);
+
+  --vp-c-sponsor-1: #eab11f;
+  --vp-c-sponsor-2: #e0a615;
+  --vp-c-sponsor-3: #ecb732;
+  --vp-c-sponsor-soft: rgba(236, 183, 50, 0.14);
+
+  --vp-button-sponsor-border: var(--vp-c-sponsor-3);
+  --vp-button-sponsor-text: var(--vp-c-neutral);
+  --vp-button-sponsor-hover-border: var(--vp-c-sponsor-3);
+  --vp-button-sponsor-hover-text: var(--vp-c-black);
+  --vp-button-sponsor-hover-bg: var(--vp-c-sponsor-3);
+  --vp-button-sponsor-active-border: var(--vp-c-sponsor-2);
+  --vp-button-sponsor-active-text: var(--vp-c-black);
+  --vp-button-sponsor-active-bg: var(--vp-c-sponsor-2);
+
+  --vp-code-color: var(--vp-c-blue-3);
+
+  --vp-c-blue-1: #0ea5e9;
+  --vp-c-blue-2: #0b87c1;
+  --vp-c-blue-3: #096c9a;
+  --vp-c-blue-soft: rgba(14, 164, 233, 0.14);
+
+  --vp-custom-block-info-border: var(--vp-c-blue-soft);
+  --vp-custom-block-info-bg: var(--vp-c-blue-soft);
+  --vp-custom-block-info-text: var(--vp-c-neutral);
+
+  --vp-custom-block-tip-border: var(--vp-c-green-soft);
+  --vp-custom-block-tip-bg: var(--vp-c-green-soft);
+  --vp-custom-block-tip-text: var(--vp-c-neutral);
+
+  --vp-custom-block-warning-border: var(--vp-c-yellow-soft);
+  --vp-custom-block-warning-bg: var(--vp-c-yellow-soft);
+  --vp-custom-block-warning-text: var(--vp-c-neutral);
+
+  --vp-custom-block-danger-border: var(--vp-c-danger-soft);
+  --vp-custom-block-danger-bg: var(--vp-c-danger-soft);
+  --vp-custom-block-danger-text: var(--vp-c-neutral);
+
+  --vp-custom-block-details-border: transparent;
+  --vp-custom-block-details-bg: var(--vp-c-default-soft);
+}
+
+[lang|="ru"] {
+  --vp-code-copy-copied-text-content: 'Скопировано';
+}
+
+.dark {
+  --vp-code-color: var(--vp-c-blue-1);
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+/* место под полосу прокрутки зарезервировано, отступ glightbox и DocSearch сдвигал бы страницу */
+@supports (scrollbar-gutter: stable) {
+  body.gscrollbar-fixer,
+  body.DocSearch--active {
+    margin-inline-end: 0 !important;
+  }
+}
+
+.VPNav {
+  background-color: var(--vp-c-bg);
+  border-radius: 0 0 var(--vp-border-radius) var(--vp-border-radius);
+  box-shadow: var(--vp-shadow-6);
+}
+
+.VPLocalNav {
+  border-top: none !important;
+}
+
+.VPNavBar.has-sidebar {
+  border-bottom: none;
+}
+
+.VPNavBarTitle .title {
+  font-size: 0;
+  border: none;
+}
+
+.VPSidebarItem.level-0 {
+  padding-bottom: 10px !important;
+}
+
+.VPDocAsideOutline {
+  border: var(--vp-border);
+  border-radius: var(--vp-border-radius);
+  padding: 20px 20px 20px 0;
+}
+
+.VPDocAsideOutline .content {
+  padding-left: 20px;
+  border-left: none;
+}
+
+.VPDocAsideOutline .outline-marker {
+  width: 4px;
+  left: -4px;
+}
+
+.VPDoc .content-container {
+  max-width: unset !important;
+}
+
+.pager .pager-link {
+  border: 1px solid var(--vp-c-gray-soft);
+  box-shadow: var(--vp-shadow-1);
+}
+
+.pager .pager-link .title {
+  color: var(--vp-c-text-1);
+}
+
+.curtain {
+  display: none;
+}
+
+kbd {
+  border: 1px solid var(--vp-c-border);
+  box-shadow: var(--vp-c-gray-soft) 0px 1px 1px 0px, var(--vp-c-neutral-inverse) 0px 1px 0px 0px inset;
+  background-color: var(--vp-c-gray-soft);
+  border-radius: 3px;
+  display: inline-block;
+  margin: 0 .1em;
+  overflow-wrap: break-word;
+  padding: .1em .6em;
+  text-shadow: 0 1px 0 var(--vp-c-white);
+}
+
+.vp-doc p {
+  line-height: 26px;
+}
+
+.vp-doc li + li {
+  margin-top: .25em;
+}
+
+.vp-doc table {
+  line-height: 1.5;
+}
+
+.vp-doc ol {
+  counter-reset: li;
+  list-style: none;
+  position: relative;
+}
+
+.vp-doc ol > li {
+  padding-left: 1.25rem;
+}
+
+.vp-doc ol > li::before {
+  width: calc(1.5rem - 2px);
+  height: calc(1.5rem - 2px);
+  font-size: calc(1rem - 2px);
+  margin: 1px 0 0 .5rem;
+  content: counter(li);
+  counter-increment: li;
+  position: absolute;
+  left: 0;
+  color: var(--vp-c-text-1);
+  font-weight: 500;
+  text-align: center;
+  border-radius: 50%;
+  background-color: var(--vp-sidebar-bg-color);
+}
+
+.custom-block {
+  border-radius: var(--vp-border-radius);
+  border-width: var(--vp-border-width);
+}
+
+.custom-block.info a,
+.custom-block.info code {
+  color: var(--vp-c-blue-1);
+}
+
+.custom-block.info a:hover {
+  color: var(--vp-c-blue-2);
+}
+
+@media (max-width: 1023px) {
+  .vp-doc table {
+    border: 0;
+  }
+
+  .vp-doc table tbody {
+    display: block;
+  }
+
+  .vp-doc table thead {
+    border: none;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
+
+  .vp-doc table tr {
+    border-bottom: 1px solid var(--vp-c-divider);
+    display: block;
+    margin-bottom: 1rem;
+  }
+
+  .vp-doc table tr:nth-child(2n) {
+    background-color: inherit;
+  }
+
+  .vp-doc table td {
+    border-top: none;
+    display: block;
+    overflow-x: auto;
+  }
+
+  .vp-doc table td::before {
+    display: block;
+    content: attr(data-label) ':';
+    color: var(--vp-c-text-2);
+  }
+
+  .vp-doc table td:empty {
+    display: none;
+  }
+
+  .vp-doc table td:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .VPNavBar .VPNavBarSearch .VPNavBarSearchButton {
+    justify-content: space-between;
+    height: 40px;
+    padding: 0 10px 0 12px;
+    background-color: var(--vp-c-bg-elv);
+    border: 1px solid var(--vp-c-gray-soft);
+    box-shadow: var(--vp-shadow-1);
+  }
+
+  .VPNavBar .VPNavBarSearch .VPNavBarSearchButton:hover {
+    border-color: var(--vp-c-gray-2);
+  }
+
+  .VPNavBarSearchButton .text {
+    margin-right: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .VPNavBar .VPNavBarSearch .VPNavBarSearchButton {
+    min-width: 200px;
+  }
+}
+
+/* shortcut keys are drawn by the `.keys` box, not by the global kbd style */
+.VPNavBarSearchButton kbd {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* same cross as the active hamburger: two 16px × 2px bars rotated by 45° */
+.vpi-delete {
+  --icon: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path d="M6.343 6.343l11.314 11.314M17.657 6.343l-11.314 11.314"/></svg>');
+  font-size: 24px !important;
+}
+
+/* Nolebase Enhanced Readabilities: VitePress social links have -16px margin-right */
+.VPSocialLinks.VPNavBarSocialLinks.social-links {
+  margin-right: 0;
+}
+
+.vp-doc tr[id] {
+  scroll-margin-top: calc(var(--vp-nav-height) + 24px);
+}

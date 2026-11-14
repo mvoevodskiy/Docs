@@ -1,0 +1,296 @@
+# mFilterNav
+
+Сниппет выводит список ссылок на значения фильтров: цвета, производителей, разделы. Подходит для SEO-перелинковки в футере или боковой колонке, облака характеристик, фильтров-ссылок вместо чекбоксов. Чанки и CSS-классы задаются как в pdoMenu.
+
+Каждая ссылка — SEO-адрес раздела с одним фильтром: `/catalog/color--red/`. Сортировки, лимита и номера страницы в ней нет. Разделитель берётся из настройки `mfilter.url_separator`. Если значений нет, сниппет ничего не выводит — заголовок вокруг вызова останется без списка.
+
+## Параметры
+
+### Основные
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `parents` | `0` (текущий) | ID одного раздела: по нему выбираются товары, и на него ведут ссылки. Несколько ID не поддерживаются |
+| `filterKeys` | — | Ключи текстовых фильтров набора через запятую: опции, производитель, раздел. Числовые диапазоны — цена, вес — не поддерживаются |
+
+### Источник товаров
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `element` | — | Сниппет, который выбирает товары раздела: msProducts, pdoResources. Нужен, если товары раздела выбирает свой сниппет; без него товары берутся обходом дочерних ресурсов |
+| `depth` | `10` | Глубина обхода |
+
+Остальные параметры вызова передаются сниппету `element` — например, `where` для msProducts.
+
+Если выше на странице вызван `mFilter` с `&element`, навигация берёт его товары, а `parents`, `element` и `depth` для выбора значений не действуют.
+
+### Чанки
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `tpl` | `@INLINE <li class="{$classNames \| esc}"><a href="{$url \| esc}">{$label \| esc}</a></li>` | Чанк одного пункта. Значение задано свойством сниппета и перебивает разметку из кода. Свою разметку передавайте параметром вызова, свойство не очищайте — пустое свойство выводит дамп переменных |
+| `tplOuter` | `@INLINE <ul class="{$outerClass \| esc}">{$output}</ul>` | Внешняя обёртка |
+| `tplGroup` | — | Обёртка группы пунктов. Группа — одна на каждый ключ фильтра |
+| `tplHere` | — | Чанк активного пункта |
+
+### CSS-классы
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `firstClass` | `first` | Класс первого пункта — отдельно в каждом ключе фильтра |
+| `lastClass` | `last` | Класс последнего пункта — отдельно в каждом ключе фильтра |
+| `hereClass` | `active` | Класс активного пункта |
+| `rowClass` | — | Класс всех пунктов |
+| `outerClass` | — | Класс внешней обёртки |
+
+Активным считается значение, выбранное в SEO-адресе текущей страницы. С фильтрами в строке запроса пункт не отмечается. Раздел не сверяется: навигация по другому разделу тоже отметит значение, выбранное на текущей странице.
+
+### Значения и сортировка
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `showCount` | `false` | Считать число товаров для каждого значения и передать в чанк флаг `{$showCount}`. Стандартный чанк число не выводит — задайте свой `tpl` с `{$count}`, как в [примере](#navigaciya-po-cvetam-s-kolichestvom) |
+| `hideEmpty` | `true` | Скрывать значения без товаров в разделе. Если выключить и его, и `showCount`, выводятся все значения ключа из всего каталога, без привязки к разделу |
+| `sortBy` | `label` | Сортировка: `label` или `count` |
+| `sortDir` | `ASC` | Направление: `ASC` или `DESC` |
+| `limit` | `0` | Число значений на каждый ключ фильтра (0 — все) |
+
+### Кэширование
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `cache` | `false` | Включить кэширование. Для SEO-навигации рекомендуется |
+| `cacheTime` | `3600` | Время жизни кэша, секунды |
+
+Чанки и классы в ключ кэша не входят: два вызова с одинаковыми ключами фильтров и разной разметкой при `cache = 1` выведут разметку первого. Включайте кэш только у одного такого вызова.
+
+## Переменные чанков
+
+### tpl / tplHere
+
+| Переменная | Описание |
+|------------|----------|
+| `{$url}` | SEO-адрес раздела с этим значением фильтра |
+| `{$label}` | Подпись: само значение; для ключей `parent`, `parents`, `category`, `categories` — пункт меню или заголовок раздела; для `vendor_id` с MiniShop3 — имя производителя |
+| `{$value}` | Исходное значение |
+| `{$slug}` | Слаг значения |
+| `{$filterKey}` | Ключ фильтра |
+| `{$count}` | Число товаров раздела с этим значением. `0`, если выключены и `showCount`, и `hideEmpty` |
+| `{$hasCount}` | Всегда `true`; оставлен для старых чанков |
+| `{$showCount}` | Значение параметра `showCount` |
+| `{$idx}` | Номер пункта в ключе фильтра, с 1 |
+| `{$isActive}` | `true`, если значение выбрано в SEO-адресе текущей страницы |
+| `{$isFirst}` | `true`, если пункт первый в ключе фильтра |
+| `{$isLast}` | `true`, если пункт последний в ключе фильтра |
+| `{$classNames}` | Собранные CSS-классы пункта |
+
+Переменные первого пункта производителя:
+
+```
+Array
+(
+    [url] => /bytovaya-tehnika/vendor_id--acer/
+    [label] => Acer
+    [value] => 16
+    [slug] => acer
+    [filterKey] => vendor_id
+    [count] => 290
+    [idx] => 1
+    [isActive] =>
+    [isFirst] => 1
+    [isLast] =>
+    [classNames] => first
+)
+```
+
+### tplOuter
+
+| Переменная | Описание |
+|------------|----------|
+| `{$output}` | HTML всех пунктов, а с `tplGroup` — всех групп |
+| `{$outerClass}` | Класс обёртки |
+
+### tplGroup
+
+| Переменная | Описание |
+|------------|----------|
+| `{$output}` | HTML пунктов группы |
+| `{$filterKey}` | Ключ фильтра |
+| `{$count}` | Число пунктов в группе |
+
+## Примеры
+
+### Навигация по производителям
+
+```fenom
+<nav class="brands-nav">
+    <h3>Производители</h3>
+    {'!mFilterNav' | snippet : [
+        'parents' => $_modx->resource.id,
+        'filterKeys' => 'vendor_id'
+    ]}
+</nav>
+```
+
+### Навигация по цветам с количеством
+
+```fenom
+{'!mFilterNav' | snippet : [
+    'parents' => $_modx->resource.id,
+    'filterKeys' => 'color',
+    'element' => 'msProducts',
+    'showCount' => true,
+    'hideEmpty' => true,
+    'tpl' => '@INLINE <li class="{$classNames | esc}">
+        <a href="{$url | esc}">{$label | esc} ({$count})</a>
+    </li>'
+]}
+```
+
+### Несколько фильтров с группировкой
+
+```fenom
+{'!mFilterNav' | snippet : [
+    'parents' => $_modx->resource.id,
+    'filterKeys' => 'vendor_id,color,size',
+    'tplGroup' => '@INLINE <div class="filter-group">
+        <h4>{$filterKey}</h4>
+        <ul>{$output}</ul>
+    </div>',
+    'tplOuter' => '@INLINE <div class="filter-nav">{$output}</div>'
+]}
+```
+
+Что выведет вызов на странице раздела с выбранным красным цветом:
+
+```html
+<div class="filter-nav">
+    <div class="filter-group">
+        <h4>vendor_id</h4>
+        <ul>
+            <li class="first"><a href="/bytovaya-tehnika/vendor_id--acer/">Acer</a></li>
+            <li class=""><a href="/bytovaya-tehnika/vendor_id--adidas/">Adidas</a></li>
+            …
+            <li class="last"><a href="/bytovaya-tehnika/vendor_id--zhiyun/">Zhiyun</a></li>
+        </ul>
+    </div>
+    <div class="filter-group">
+        <h4>color</h4>
+        <ul>
+            <li class="first"><a href="/bytovaya-tehnika/bezhevyj/">Бежевый</a></li>
+            …
+            <li class="active"><a href="/bytovaya-tehnika/krasnyj/">Красный</a></li>
+            …
+            <li class="last"><a href="/bytovaya-tehnika/chernyj/">Чёрный</a></li>
+        </ul>
+    </div>
+    …
+</div>
+```
+
+### Топ-10 популярных значений
+
+```fenom
+{'!mFilterNav' | snippet : [
+    'parents' => $_modx->resource.id,
+    'filterKeys' => 'vendor_id',
+    'element' => 'msProducts',
+    'showCount' => true,
+    'sortBy' => 'count',
+    'sortDir' => 'DESC',
+    'limit' => 10,
+    'tpl' => '@INLINE <li class="{$classNames | esc}"><a href="{$url | esc}">{$label | esc} ({$count})</a></li>'
+]}
+```
+
+### Горизонтальное меню
+
+Меню в разметке Bootstrap: класс `active` Bootstrap ждёт на ссылке, поэтому чанк ставит его сам по `{$isActive}`.
+
+```fenom
+{'!mFilterNav' | snippet : [
+    'parents' => $_modx->resource.id,
+    'filterKeys' => 'category',
+    'outerClass' => 'nav nav-pills',
+    'rowClass' => 'nav-item',
+    'tpl' => '@INLINE <li class="{$classNames | esc}">
+        <a class="nav-link{if $isActive} active{/if}" href="{$url | esc}">{$label | esc}</a>
+    </li>'
+]}
+```
+
+### Свой чанк и класс активного пункта
+
+```fenom
+{'!mFilterNav' | snippet : [
+    'parents' => $_modx->resource.id,
+    'filterKeys' => 'color',
+    'hereClass' => 'is-selected',
+    'tplHere' => '@INLINE <li class="{$classNames | esc}">
+        <span class="current">{$label | esc}</span>
+    </li>'
+]}
+```
+
+### Перелинковка в футере
+
+```fenom
+<footer>
+    <div class="footer-links">
+        <div class="footer-col">
+            <h4>Популярные производители</h4>
+            {'!mFilterNav' | snippet : [
+                'parents' => 5,
+                'filterKeys' => 'vendor_id',
+                'limit' => 10,
+                'sortBy' => 'count',
+                'sortDir' => 'DESC',
+                'element' => 'msProducts'
+            ]}
+        </div>
+        <div class="footer-col">
+            <h4>По цвету</h4>
+            {'!mFilterNav' | snippet : [
+                'parents' => 5,
+                'filterKeys' => 'color',
+                'element' => 'msProducts',
+                'hideEmpty' => true
+            ]}
+        </div>
+    </div>
+</footer>
+```
+
+На странице каталога, где выше вызван `mFilter` с `&element`, такая навигация считает значения по товарам этой страницы, а ссылки ведут в раздел 5. Выводите перелинковку на другой раздел на страницах без `mFilter`.
+
+### Быстрый выбор в боковой колонке
+
+```fenom
+<aside class="catalog-sidebar">
+    {* Основная форма фильтров *}
+    {'!mFilterForm' | snippet}
+
+    {* Дополнительная текстовая навигация *}
+    <div class="sidebar-links">
+        <h4>Быстрый выбор</h4>
+        {'!mFilterNav' | snippet : [
+            'filterKeys' => 'vendor_id,color',
+            'limit' => 5,
+            'showCount' => true,
+            'element' => 'msProducts',
+            'tpl' => '@INLINE <li class="{$classNames | esc}"><a href="{$url | esc}">{$label | esc} ({$count})</a></li>'
+        ]}
+    </div>
+</aside>
+```
+
+`limit` действует на каждый ключ: здесь выйдет до пяти производителей и до пяти цветов.
+
+## Отличие от mFilterForm
+
+| mFilterForm | mFilterNav |
+|-------------|------------|
+| Форма: чекбоксы, слайдеры | Только ссылки |
+| AJAX-обновление | Переход по URL |
+| Комбинирование фильтров | Один фильтр на ссылку |
+| Обновляется после фильтрации без перезагрузки | Остаётся как при загрузке страницы: числа и отметка активного пункта не меняются |

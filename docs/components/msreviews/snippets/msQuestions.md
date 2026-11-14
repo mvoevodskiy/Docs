@@ -1,0 +1,115 @@
+---
+title: msQuestions
+description: Список опубликованных вопросов и ответов на карточке товара
+---
+
+# Сниппет msQuestions
+
+Выводит список опубликованных вопросов по товару с ответами магазина (Q&A).
+
+## Назначение
+
+Опубликованные вопросы и ответы на карточке. Пагинация — `pdoPage`, фильтр `faqOnly` — в таблице.
+
+## Где вызывать
+
+- Шаблон **msProduct**, после [msQuestionForm](msQuestionForm) или перед ним (см. [msQnaBlock](msQnaBlock)).
+- Параметр **`product_id`** обязателен. Имя **`product`** не поддерживается.
+- Не дублируйте с [msReviewsTabbed](msReviewsTabbed) / [msReviewsHub](msReviewsHub).
+
+## Зависимости
+
+- **MiniShop3**, **msReviews**
+- **pdoTools 3.0+** — чанки на Fenom. Для пагинации нужна обёртка `pdoPage`
+
+## Параметры
+
+| Параметр | По умолчанию | Описание |
+| --- | --- | --- |
+| `product_id` | id ресурса | ID товара MS3. Обязателен |
+| `limit` | `20` | Записей (1–100) |
+| `offset` | `0` | Пропуск. При вызове из `pdoPage` передаётся обёрткой автоматически |
+| `totalVar` | `page.total` | Плейсхолдер total для `pdoPage`. Режим списка без шапки включается при вызове из pdoPage |
+| `faqOnly` | `0` | Только вопросы с опубликованным ответом |
+| `sortDir` | `DESC` | `DESC` или `ASC` (с **1.2.4**) |
+| `tpl` | `tplQuestionItem` | Чанк строки вопроса |
+| `wrapper` | `tplQuestionsList` | Чанк-обёртка. Пусто — секция без заголовка из чанка |
+| `registerCss` | `1` | Подключать `reviews.css` этим вызовом |
+| `registerJs` | `1` | Не влияет на JS: регистрируется только CSS |
+
+В чанке `tplQuestionItem` с **1.2.4** доступен `{$idx}`: номер строки с 1 с учётом `offset`.
+
+## Базовый вызов
+
+::: code-group
+
+```fenom
+{'!msQuestions' | snippet : ['product_id' => $_modx->resource.id, 'limit' => 20]}
+```
+
+```modx
+[[!msQuestions? &product_id=`[[*id]]` &limit=`20`]]
+```
+
+:::
+
+## Стек форма + список
+
+Форма перед списком, заголовок формы скрыт:
+
+::: code-group
+
+```fenom
+<div class="msreviews-qna-stack">
+  {'!msQuestionForm' | snippet : ['product_id' => $_modx->resource.id, 'showHeading' => 0]}
+  {'!msQuestions' | snippet : ['product_id' => $_modx->resource.id]}
+</div>
+```
+
+```modx
+<div class="msreviews-qna-stack">
+[[!msQuestionForm? &product_id=`[[*id]]` &showHeading=`0`]]
+[[!msQuestions? &product_id=`[[*id]]`]]
+</div>
+```
+
+:::
+
+## Пагинация Q&A
+
+Отдельный `pageVarKey`, не совпадающий с отзывами:
+
+::: code-group
+
+```fenom
+{'!pdoPage' | snippet : [
+  'element' => 'msQuestions',
+  'product_id' => $_modx->resource.id,
+  'limit' => 5,
+  'pageVarKey' => 'qna_page',
+  'pageNavVar' => 'qna.page.nav',
+  'totalVar' => 'qna.page.total'
+]}
+<div class="msreviews-pdopage-nav">{'qna.page.nav' | placeholder}</div>
+```
+
+```modx
+[[!pdoPage?
+  &element=`msQuestions`
+  &product_id=`[[*id]]`
+  &limit=`5`
+  &pageVarKey=`qna_page`
+  &pageNavVar=`qna.page.nav`
+  &totalVar=`qna.page.total`
+]]
+<div class="msreviews-pdopage-nav">[[!+qna.page.nav]]</div>
+```
+
+:::
+
+## См. также
+
+- [msQuestionForm](msQuestionForm)
+- [msQnaBlock](msQnaBlock)
+- [Чанки](../chunks)
+- [Интеграция — Q&A](../integration)

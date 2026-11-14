@@ -1,0 +1,411 @@
+---
+title: ms3OptionsColor
+description: Параметры сниппета ms3OptionsColor, поля строки и примеры вызова
+---
+
+# ms3OptionsColor
+
+Сниппет читает значения опций товара или готовый JSON, сопоставляет их со словарём и отдаёт HTML по чанку либо массив строк. Вызов лучше некэшированный: `[[!ms3OptionsColor]]` / `{'!ms3OptionsColor' | snippet}`.
+
+При каждом вызове сниппет может подключить CSS витрины, если включён `ms3optionscolor_frontend_css`.
+
+## Как выбираются строки
+
+```mermaid
+flowchart TB
+  Keys[Ключи options или настройка]
+  ByOpt{Есть byOptions?}
+  FromJson[Значения из JSON]
+  FromProduct[Значения опций товара]
+  Dict[Поиск в словаре]
+  Filters[activeOnly / includeUnset / limit]
+  OutTpl{return?}
+  Html[HTML по чанку tpl]
+  Data[Массив строк]
+  Keys --> ByOpt
+  ByOpt -->|да| FromJson --> Dict
+  ByOpt -->|нет| FromProduct --> Dict
+  Dict --> Filters --> OutTpl
+  OutTpl -->|tpl| Html
+  OutTpl -->|data| Data
+```
+
+1. Берётся список ключей опций: параметр `options` или настройка `ms3optionscolor_default_option_key`.
+2. Если передан `byOptions`, значения берутся из JSON. Опции товара из базы не читаются.
+3. Иначе значения читаются у товара `product` (по умолчанию текущий ресурс).
+4. Каждое значение ищется в словаре. При `includeUnset=1` значения без записи тоже попадают в вывод (пустой свотч).
+5. При `activeOnly=1` неактивные записи словаря скрываются.
+6. `limit` обрезает список сверху.
+7. При `return=tpl` каждая строка отдаётся чанком `tpl`. При `return=data` возвращается массив.
+
+## Параметры
+
+| Параметр | По умолчанию | Описание |
+| --- | --- | --- |
+| `product` | id текущего ресурса | ID товара miniShop3. `0` или пусто: текущий ресурс |
+| `options` | из настройки / `color` | Ключи опций через запятую, например `color` или `color,material` |
+| `byOptions` | - | JSON значений опций. Если задан, товар из БД не читается |
+| `tpl` | `tplMs3OptionsColor` | Чанк строки: имя в Elements или `@FILE path/to/file.tpl` |
+| `return` | `tpl` | `tpl` — HTML, `data` — массив строк |
+| `activeOnly` | `1` | Только активные записи словаря |
+| `includeUnset` | авто | Включать значения без записи в словаре. При `byOptions` по умолчанию `1`, иначе `0` |
+| `limit` | `0` | Сколько строк максимум. `0` — без ограничения |
+| `selectedValue` | - | Пометить поле `selected` у строки с этим `value` (удобно для `<option>`) |
+| `toPlaceholder` | - | Имя плейсхолдера. Сниппет ничего не печатает в поток |
+
+Синоним `selected` для `selectedValue` тоже принимается.
+
+## Поля строки
+
+И в чанке, и в `return=data`:
+
+| Поле | Описание |
+| --- | --- |
+| `option_key` | Ключ опции |
+| `value` | Значение опции (как в miniShop3) |
+| `color` | HEX **без** `#` |
+| `pattern` | URL паттерна / фона |
+| `ral` | Код RAL |
+| `title` | Подпись (если пусто, в чанках часто берут `value`) |
+| `description` | Описание |
+| `image` | Изображение |
+| `active` | Активна ли запись словаря |
+| `status` | `active` / `inactive` / `unset` |
+| `hint_color` | HEX из comboColors, в словарь не пишется |
+| `configured` | Непустой HEX или pattern. Строка только с title/RAL/image даёт `false` и `status=unset` |
+| `id` / `rank` | ID строки словаря и сортировка |
+| `selected` | `true`, если `value` совпал с `selectedValue` |
+
+В CSS и select используйте `#{$color}` или `data-color="#{$color}"`: в поле лежит код без решётки.
+
+## Примеры
+
+### Страница товара
+
+::: code-group
+
+```fenom
+{'!ms3OptionsColor' | snippet : [
+  'product' => $_modx->resource.id,
+  'options' => 'color',
+  'tpl' => 'tplMs3OptionsColor'
+]}
+```
+
+```modx
+[[!ms3OptionsColor?
+  &product=`[[*id]]`
+  &options=`color`
+  &tpl=`tplMs3OptionsColor`
+]]
+```
+
+:::
+
+Без `&options` сниппет берёт ключи из `ms3optionscolor_default_option_key`.
+
+### Несколько ключей опций
+
+::: code-group
+
+```fenom
+{'!ms3OptionsColor' | snippet : [
+  'product' => $_modx->resource.id,
+  'options' => 'color,material',
+  'tpl' => 'tplMs3OptionsColor'
+]}
+```
+
+```modx
+[[!ms3OptionsColor?
+  &product=`[[*id]]`
+  &options=`color,material`
+  &tpl=`tplMs3OptionsColor`
+]]
+```
+
+:::
+
+### Карточка в каталоге
+
+В чанке строки `msProducts` передайте ID товара из строки и короткий список:
+
+::: code-group
+
+```fenom
+{'!ms3OptionsColor' | snippet : [
+  'product' => $id,
+  'options' => 'color',
+  'tpl' => 'tplMs3OptionsColor',
+  'limit' => 6
+]}
+```
+
+```modx
+[[!ms3OptionsColor?
+  &product=`[[+id]]`
+  &options=`color`
+  &tpl=`tplMs3OptionsColor`
+  &limit=`6`
+]]
+```
+
+:::
+
+### Показать значения без цвета в словаре
+
+Пустой свотч (клетчатый фон в штатном CSS) показывает значение, пока в словаре нет HEX:
+
+::: code-group
+
+```fenom
+{'!ms3OptionsColor' | snippet : [
+  'product' => $_modx->resource.id,
+  'options' => 'color',
+  'includeUnset' => 1,
+  'tpl' => 'tplMs3OptionsColor'
+]}
+```
+
+```modx
+[[!ms3OptionsColor?
+  &product=`[[*id]]`
+  &options=`color`
+  &includeUnset=`1`
+  &tpl=`tplMs3OptionsColor`
+]]
+```
+
+:::
+
+### Скрыть неактивные и обрезать список
+
+::: code-group
+
+```fenom
+{'!ms3OptionsColor' | snippet : [
+  'product' => $_modx->resource.id,
+  'options' => 'color',
+  'activeOnly' => 1,
+  'limit' => 4,
+  'tpl' => 'tplMs3OptionsColor'
+]}
+```
+
+```modx
+[[!ms3OptionsColor?
+  &product=`[[*id]]`
+  &options=`color`
+  &activeOnly=`1`
+  &limit=`4`
+  &tpl=`tplMs3OptionsColor`
+]]
+```
+
+:::
+
+### В плейсхолдер
+
+::: code-group
+
+```fenom
+{'!ms3OptionsColor' | snippet : [
+  'product' => $_modx->resource.id,
+  'options' => 'color',
+  'toPlaceholder' => 'ms3oc.swatches'
+]}
+{$_modx->getPlaceholder('ms3oc.swatches')}
+```
+
+```modx
+[[!ms3OptionsColor?
+  &product=`[[*id]]`
+  &options=`color`
+  &toPlaceholder=`ms3oc.swatches`
+]]
+[[+ms3oc.swatches]]
+```
+
+:::
+
+### return=data (свой цикл)
+
+::: code-group
+
+```fenom
+{set $rows = $_modx->runSnippet('!ms3OptionsColor', [
+  'product' => $_modx->resource.id,
+  'options' => 'color',
+  'return' => 'data'
+])}
+{foreach $rows as $row}
+  {$row.color} {$row.title ?: $row.value}{if $row.ral} RAL {$row.ral}{/if}
+{/foreach}
+```
+
+```modx
+[[!ms3OptionsColor?
+  &product=`[[*id]]`
+  &options=`color`
+  &return=`data`
+  &toPlaceholder=`ms3oc.rows`
+]]
+```
+
+:::
+
+В тегах MODX массив удобнее отдать в плейсхолдер и разобрать своим сниппетом или Fenom-чанком.
+
+### byOptions: корзина и готовый JSON
+
+Когда значения уже есть (строка корзины, свой JSON), не читайте опции товара из базы:
+
+::: code-group
+
+```fenom
+{set $colors = $_modx->runSnippet('!ms3OptionsColor', [
+  'product' => $product.id,
+  'byOptions' => json_encode($product.options),
+  'return' => 'data',
+  'includeUnset' => 1
+])}
+{foreach $colors as $row}
+  {if $row.option_key == 'color'}
+    <span data-ms3oc-swatch
+          style="{if $row.color}background:#{$row.color}{/if}"></span>
+    {$row.value}
+  {/if}
+{/foreach}
+```
+
+```modx
+[[!ms3OptionsColor?
+  &product=`[[+id]]`
+  &byOptions=`{"color":["Синий","Чёрный"]}`
+  &return=`data`
+  &includeUnset=`1`
+]]
+```
+
+:::
+
+`byOptions` это JSON-строка. В чанке корзины удобнее Fenom. Ветки корзины: чанк `tplMs3OptionsColorCart` на [Выводе на сайте](/components/ms3optionscolor/frontend#корзина).
+
+### Select с выбранным значением
+
+Чанк `tplMs3OptionsColorSelect` вызывает сниппет сам. Прямой вызов option-чанка:
+
+::: code-group
+
+```fenom
+<select name="options[color]" data-ms3oc-select data-ms3oc-native="1">
+  <option value="">Выберите цвет</option>
+  {'!ms3OptionsColor' | snippet : [
+    'product' => $_modx->resource.id,
+    'options' => 'color',
+    'tpl' => 'tplMs3OptionsColorSelectOption',
+    'selectedValue' => 'Синий',
+    'includeUnset' => 1
+  ]}
+</select>
+```
+
+```modx
+<select name="options[color]" data-ms3oc-select data-ms3oc-native="1">
+  <option value="">Выберите цвет</option>
+  [[!ms3OptionsColor?
+    &product=`[[*id]]`
+    &options=`color`
+    &tpl=`tplMs3OptionsColorSelectOption`
+    &selectedValue=`Синий`
+    &includeUnset=`1`
+  ]]
+</select>
+```
+
+:::
+
+Select с подписью:
+
+::: code-group
+
+```fenom
+<script src="{'assets_url' | option}components/ms3optionscolor/js/web/select.js"></script>
+{$_modx->getChunk('tplMs3OptionsColorSelect', [
+  'product' => $_modx->resource.id,
+  'option_key' => 'color',
+  'caption' => 'Цвет',
+  'placeholder' => 'Выберите цвет',
+  'selectedValue' => 'Синий',
+  'native' => 1
+])}
+```
+
+```modx
+<script src="[[++assets_url]]components/ms3optionscolor/js/web/select.js"></script>
+[[$tplMs3OptionsColorSelect?
+  &product=`[[*id]]`
+  &option_key=`color`
+  &caption=`Цвет`
+  &placeholder=`Выберите цвет`
+  &selectedValue=`Синий`
+  &native=`1`
+]]
+```
+
+:::
+
+Параметры чанка select: таблица на [Выводе на сайте](/components/ms3optionscolor/frontend#select).
+
+### Свой чанк через @FILE
+
+Путь относительно `pdotools_elements_path` (обычно `core/elements/`):
+
+::: code-group
+
+```fenom
+{'!ms3OptionsColor' | snippet : [
+  'product' => $_modx->resource.id,
+  'options' => 'color',
+  'tpl' => '@FILE chunk/ms3OptionsColor/tpl.option_row.tpl'
+]}
+```
+
+```modx
+[[!ms3OptionsColor?
+  &product=`[[*id]]`
+  &options=`color`
+  &tpl=`@FILE chunk/ms3OptionsColor/tpl.option_row.tpl`
+]]
+```
+
+:::
+
+В имени файла допустимы точки и `_`. Сегмент `..` отклоняется. Минимальная разметка: [свой чанк свотча](/components/ms3optionscolor/frontend#свой-чанк-свотча).
+
+## Частые ошибки
+
+---
+
+## Внутренние вспомогательные функции
+
+В коде пакета определены несколько вспомогательных функций, которые используют сниппет и плагины. Ниже их краткое описание и назначение:
+
+| Функция | Описание |
+| --- | --- |
+| `ms3oc_resolve_snippet_option_keys(string $optionsProp, array $defaultKeys): array` | Возвращает массив ключей опций, полученных из параметра `options` или из дефолтных ключей, если параметр пустой. |
+| `ms3oc_prop_bool_auto(array $scriptProperties, string $key, bool $autoDefault): bool` | Возвращает булево значение свойства сниппета, учитывая автоматическое значение по умолчанию, если свойство не задано. |
+| `ms3oc_sanitize_chunk_name(string $name, string $default): string` | Очищает имя чанка, поддерживая путь `@FILE …`, и возвращает безопасное имя или значение по умолчанию. |
+| `ms3oc_get_chunk(modX $modx, string $name, array $properties = []): string` | Получает содержимое чанка через pdoTools (Fenom/@FILE) с fallback на `modX::getChunk`. |
+| `ms3oc_register_frontend_css(modX $modx): void` | Подключает CSS‑файл свотчей на фронтенде, если включена настройка `ms3optionscolor_frontend_css`. |
+
+Эти функции находятся в файле `core/components/ms3optionscolor/include/helpers.php` и используются в плагине и сниппете. При необходимости их можно расширять или использовать в собственных плагинах.
+
+| Симптом | Что проверить |
+| --- | --- |
+| Пустой вывод | У товара есть значения опции, ключ совпадает с `options` / настройкой |
+| Нет квадратов цвета | Запись в словаре и CSS (`ms3optionscolor_frontend_css`) |
+| В select нет option | Чанк `tpl` должен быть `tplMs3OptionsColorSelectOption` или свой с `<option>` |
+| `byOptions` ничего не даёт | JSON валидный, ключи совпадают с опциями, при необходимости `includeUnset=1` |
+
+[Вывод на сайте](/components/ms3optionscolor/frontend), [mFilter](/components/ms3optionscolor/mfilter), [ms3variants](/components/ms3optionscolor/ms3variants). Обзор чанков: [Сниппеты](index).

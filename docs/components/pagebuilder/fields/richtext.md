@@ -1,0 +1,105 @@
+---
+title: "richtext"
+description: "HTML-строка из привычного richtext MODX"
+---
+
+# Поле richtext
+
+Версия: **Free**.
+
+<!-- ![richtext](/components/pagebuilder/screenshots/fields/richtext.jpg) -->
+
+## Зачем этот тип
+
+- HTML-редактор в инспекторе без отдельного TV
+- Ссылки, списки и базовое форматирование из коробки
+- В chunk отдаёт готовый HTML, парсить блоки не нужно
+
+Режим редактора берётся из `pageBuilderConfig.richText`. При `whichEditor` = `mxEditorJs` и доступном Editor.js включается блок Editor.js. Иначе при `useEditor` ≠ false работает RTE ресурса MODX (`MODx.loadRTE`). Если инициализация не удалась или редактор выключен, остаётся обычная многострочная textarea.
+
+```mermaid
+flowchart TB
+    A{"whichEditor = mxEditorJs и Editor.js доступен?"} -->|"да"| B[Блок Editor.js]
+    A -->|"нет"| C{"useEditor ≠ false?"}
+    C -->|"да"| D["RTE ресурса MODX: MODx.loadRTE"]
+    C -->|"нет"| E[Многострочная textarea]
+    D -->|"инициализация не удалась"| E
+```
+
+## Когда использовать
+
+- Основной текст секции: абзацы, ссылки
+- Ответ FAQ с выделением и списками
+- Контент, где редактор не пишет разметку вручную
+
+## Советы
+
+Сырой HTML или CSS: [ace](ace).
+
+## Похожие типы
+
+- [editorjs](editorjs) для структурированных блоков с json и html
+- [textarea](textarea) для простого текста без тегов
+
+## Настройка
+
+```json
+{
+  "name": "content",
+  "type": "richtext",
+  "label": "Текст",
+  "tab": "Контент",
+  "width": 100,
+  "active": true
+}
+```
+
+## Значение
+
+HTML-строка.
+
+## Данные секции {#vyvod-v-section-data}
+
+Ключ `content` в данных секции:
+
+```json
+{
+  "content": "<p>Текст с <strong>разметкой</strong>.</p>"
+}
+```
+
+## Пример в chunk
+
+::: code-group
+
+```modx
+<div class="pb-richtext__content">[[+content]]</div>
+```
+
+```fenom
+<div class="pb-richtext__content">{$content}</div>
+```
+
+:::
+
+## Общие свойства
+
+Для полей с `name`, которые сохраняются в данных секции:
+
+| Ключ | Тип | Роль | Панель |
+| --- | --- | --- | --- |
+| `tab` | string | Подзаголовок группы в инспекторе | да |
+| `width` | 25, 33, 50, 66, 75, 100 | Ширина поля в % строки (flex); в CMP только эти значения | да |
+| `description` | string | Подсказка под подписью | да |
+| `default` | any | Начальное значение новой секции | да |
+| `active` | bool | `false` — скрыть поле в инспекторе | да |
+| `required` | bool | Обязательно при **publish** (черновик сохраняется) | да |
+
+**Pro** (capability `responsive`): при `responsive: true` в данных секции — ключи `desktop`, `tablet`, `mobile` вместо скаляра.
+
+Подробнее: [обзор полей](overview#общие-свойства-поля).
+
+## Дальше
+
+- [Справочник типов](types)
+- [Обзор полей](overview)

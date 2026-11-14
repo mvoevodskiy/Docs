@@ -1,0 +1,100 @@
+---
+title: "currency"
+description: "Число суммы с символом валюты из настройки currency"
+---
+
+# Поле currency
+
+Версия: **Pro** (`advanced-fields`).
+
+<!-- ![currency](/components/pagebuilder/screenshots/fields/currency.jpg) -->
+
+## Зачем этот тип
+
+Сумма с форматированием в инспекторе, не просто число.
+
+## Когда использовать
+
+- Цена в своей секции без MS3
+- Старая и новая цена в промо-блоке
+- Поле суммы пожертвования
+
+## Советы
+
+Ключ `currency` в schema — код ISO 4217 (`USD`, `RUB`), его передают в PrimeVue InputNumber. Без ключа инспектор использует `USD`.
+
+## Похожие типы
+
+- [number](number) для чисел без валюты
+- [imask](imask) для строки с маской вместо числа
+
+## Настройка
+
+```json
+{
+  "name": "price",
+  "type": "currency",
+  "label": "Цена",
+  "currency": "RUB",
+  "min": 0,
+  "max": 999999,
+  "tab": "Контент",
+  "width": 100,
+  "active": true
+}
+```
+
+## Значение
+
+Число или `null`. Новая секция без `default`: `null`.
+
+## Данные секции {#vyvod-v-section-data}
+
+Ключ `price` в данных секции:
+
+```json
+{
+  "price": 1990.5
+}
+```
+
+## Пример в chunk
+
+::: code-group
+
+```modx
+<span class="price">[[+price]] ₽</span>
+```
+
+```fenom
+{if $price !== null}<span class="price">{$price} ₽</span>{/if}
+```
+
+:::
+
+## Примечание
+
+Лимиты как у [number](number).
+
+## Общие свойства
+
+Для полей с `name`, которые сохраняются в данных секции:
+
+| Ключ | Тип | Роль | Панель |
+| --- | --- | --- | --- |
+| `tab` | string | Подзаголовок группы в инспекторе | да |
+| `width` | 25, 33, 50, 66, 75, 100 | Ширина поля в % строки (flex); в CMP только эти значения | да |
+| `description` | string | Подсказка под подписью | да |
+| `default` | any | Начальное значение новой секции | да |
+| `active` | bool | `false`: скрыть поле в инспекторе | да |
+| `required` | bool | Обязательно при **publish** (черновик сохраняется) | да |
+
+**Pro** (capability `responsive`): при `responsive: true` в данных секции ключи `desktop`, `tablet`, `mobile` вместо скаляра.
+
+Подробнее: [обзор полей](overview#общие-свойства-поля).
+
+## Дальше
+
+- [Справочник типов](types)
+- [Обзор полей](overview)
+- [Pro в менеджере](../integration)

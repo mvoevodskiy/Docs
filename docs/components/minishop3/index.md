@@ -1,0 +1,343 @@
+---
+title: MiniShop3
+description: Современный компонент интернет-магазина для MODX 3
+categories: catalog
+popular: true
+logo: https://modstore.pro/assets/extras/minishop3/logo.png
+author: biz87
+repository: https://github.com/modx-pro/MiniShop3
+
+compatibility:
+  - modx3
+  - php82
+items: [
+  { text: 'Быстрый старт', link: 'quick-start' },
+  { text: 'Отличия от miniShop2', link: 'differences-from-ms2' },
+  { text: 'Системные настройки', link: 'settings' },
+  {
+    text: 'Сниппеты',
+    link: 'snippets/',
+    items: [
+      { text: 'msProducts', link: 'snippets/msproducts' },
+      { text: 'msCart', link: 'snippets/mscart' },
+      { text: 'msOrder', link: 'snippets/msorder' },
+      { text: 'msGetOrder', link: 'snippets/msgetorder' },
+      { text: 'msGallery', link: 'snippets/msgallery' },
+      { text: 'msOptions', link: 'snippets/msoptions' },
+      { text: 'msProductOptions', link: 'snippets/msproductoptions' },
+      { text: 'msCustomer', link: 'snippets/mscustomer' },
+      { text: 'msOrderTotal', link: 'snippets/msordertotal' },
+    ],
+  },
+  { text: 'Плагины', link: 'development/events/plugins-guide' },
+  {
+    text: 'Интерфейс админки',
+    items: [
+      { text: 'Заказы', link: 'interface/orders' },
+      { text: 'Клиенты', link: 'interface/customers' },
+      { text: 'Категория', link: 'interface/category' },
+      { text: 'Товар', link: 'interface/product' },
+      { text: 'Галерея', link: 'interface/gallery' },
+      { text: 'Центр уведомлений', link: 'interface/notifications' },
+      {
+        text: 'Настройки',
+        link: 'interface/settings',
+        items: [
+          { text: 'Доставки', link: 'interface/settings/deliveries' },
+          { text: 'Оплаты', link: 'interface/settings/payments' },
+          { text: 'Статусы заказа', link: 'interface/settings/statuses' },
+          { text: 'Производители', link: 'interface/settings/vendors' },
+          { text: 'Связи', link: 'interface/settings/links' },
+          { text: 'Опции', link: 'interface/settings/options' },
+        ],
+      },
+      {
+        text: 'Утилиты',
+        link: 'interface/utilities',
+        items: [
+          { text: 'Галерея', link: 'interface/utilities/gallery' },
+          { text: 'Импорт', link: 'interface/utilities/import' },
+          { text: 'Поля товара', link: 'interface/utilities/product-fields' },
+          { text: 'Свои поля', link: 'interface/utilities/extra-fields' },
+          { text: 'Колонки гридов', link: 'interface/utilities/grid-columns' },
+          { text: 'Поля модели', link: 'interface/utilities/model-fields' },
+        ],
+      },
+    ],
+  },
+  {
+    text: 'Cookbook админки',
+    link: 'manager/',
+    items: [
+      { text: 'Обзор', link: 'manager/' },
+      { text: 'Поле в заказе', link: 'manager/examples/order-custom-field' },
+      { text: 'Поле у товара', link: 'manager/examples/product-extra-field' },
+      { text: 'Свои поля', link: 'manager/extra-fields/cookbook' },
+      { text: 'Поля модели', link: 'manager/model-fields/cookbook' },
+      { text: 'Поля товара', link: 'manager/product-fields/cookbook' },
+      { text: 'Колонки грида', link: 'manager/grid-config/cookbook' },
+    ],
+  },
+  {
+    text: 'Интерфейс фронтенда',
+    items: [
+      { text: 'Каталог', link: 'frontend/catalog' },
+      { text: 'Страница товара', link: 'frontend/product' },
+      { text: 'Корзина', link: 'frontend/cart' },
+      { text: 'Оформление заказа', link: 'frontend/order' },
+      { text: 'Спасибо за заказ', link: 'frontend/thanks' },
+      {
+        text: 'Личный кабинет',
+        items: [
+          { text: 'Вход и регистрация', link: 'frontend/customer-auth' },
+          { text: 'Профиль покупателя', link: 'frontend/customer-profile' },
+          { text: 'Адреса доставки', link: 'frontend/customer-addresses' },
+          { text: 'История заказов', link: 'frontend/customer-orders' },
+        ],
+      },
+    ],
+  },
+  {
+    text: 'Разработка',
+    items: [
+      {
+        text: 'События',
+        link: 'development/events',
+        items: [
+          { text: 'Руководство по плагинам', link: 'development/events/plugins-guide' },
+          { text: 'Корзина', link: 'development/events/cart' },
+          { text: 'Заказ', link: 'development/events/order' },
+          { text: 'Модель заказа', link: 'development/events/order-model' },
+          { text: 'Товар в заказе', link: 'development/events/order-product' },
+          { text: 'Стоимость', link: 'development/events/cost' },
+          { text: 'Статус', link: 'development/events/status' },
+          { text: 'Покупатель', link: 'development/events/customer' },
+          { text: 'Товар', link: 'development/events/product' },
+          { text: 'Производитель', link: 'development/events/vendor' },
+          { text: 'Уведомления', link: 'development/events/notifications' },
+          { text: 'Импорт', link: 'development/events/import' },
+          { text: 'msProducts', link: 'development/events/msproducts' },
+          { text: 'Админка', link: 'development/events/manager' },
+        ],
+      },
+      {
+        text: 'Web API',
+        link: 'development/api',
+        items: [
+          { text: 'Обзор', link: 'development/api' },
+          { text: 'Справка', link: 'development/web-api/' },
+          { text: 'Авторизация', link: 'development/web-api/auth' },
+          { text: 'Карта эндпоинтов', link: 'development/web-api/endpoints' },
+          { text: 'Каталог', link: 'development/web-api/catalog' },
+          { text: 'Корзина', link: 'development/web-api/cart' },
+          { text: 'Checkout', link: 'development/web-api/checkout' },
+          { text: 'Клиент', link: 'development/web-api/customer' },
+          { text: 'Ошибки', link: 'development/web-api/errors' },
+          { text: 'CORS и rate limit', link: 'development/web-api/cors' },
+          { text: 'Примеры', link: 'development/web-api/examples' },
+        ],
+      },
+      { text: 'API Router', link: 'development/routing' },
+      { text: 'JavaScript API', link: 'development/javascript' },
+      { text: 'Frontend JavaScript', link: 'development/frontend-js' },
+      { text: 'Вкладки товара', link: 'development/product-tabs-integration' },
+      { text: 'Вкладки заказа', link: 'development/order-tabs-integration' },
+      { text: 'Scheduler', link: 'development/scheduler' },
+      { text: 'Модели и схема БД', link: 'development/models' },
+      { text: 'Сервисный слой', link: 'development/services' },
+      {
+        text: 'Backend API',
+        link: 'development/backend-api/',
+        items: [
+          { text: 'API товара', link: 'development/backend-api/product' },
+          { text: 'API заказа', link: 'development/backend-api/order' },
+          { text: 'API опций', link: 'development/backend-api/options' },
+          { text: 'API покупателя', link: 'development/backend-api/customer' },
+        ],
+      },
+    ],
+  },
+]
+---
+# MiniShop3
+
+Современный компонент интернет-магазина для MODX 3, полностью переписанный с учётом новых возможностей платформы.
+
+## Ключевые особенности
+
+### Для MODX 3
+
+MiniShop3 разработан специально для MODX Revolution 3.x и использует все преимущества новой версии:
+
+- **PHP 8.2+** — современный синтаксис, типизация, атрибуты
+- **Namespaces** — все классы организованы в пространстве имён `MiniShop3\`
+- **PSR-4 автозагрузка** — через Composer
+- **Миграции Phinx** — версионирование структуры БД
+
+### Улучшенная архитектура
+
+```mermaid
+flowchart TB
+  store[Фронтенд сниппеты / JS]
+  api[api.php Web API /api/v1]
+  mgr[Vue-менеджер]
+  mgrApi[Manager API /api/mgr]
+  core[Сервисы MS3 + xPDO]
+  store --> api --> core
+  mgr --> mgrApi --> core
+```
+
+- **Web API** — `api.php` (`/api/v1/*`) для фронтенда и headless: корзина, заказ, ЛК, каталог, delivery/payment. [Документация](/components/minishop3/development/web-api/)
+- **Service Container** — зависимости через DI-контейнер MODX
+- **Vue 3 + PrimeVue** — современный интерфейс админки через [VueTools](/components/vuetools/)
+- **Современный фронтенд** — без jQuery, нативный JavaScript
+
+### Совместимость
+
+MiniShop3 сохраняет обратную совместимость с miniShop2 на уровне:
+
+- Имена сниппетов (`msProducts`, `msCart`, `msOrder` и др.)
+- Основные параметры сниппетов
+
+Поля моделей и плейсхолдеры отличаются: нет `receiver`, комментарий заказа — `order_comment`, остаток — `stock`, ключ позиции корзины — `product_key`. Подробнее: [Отличия от miniShop2](/components/minishop3/differences-from-ms2).
+
+## Системные требования
+
+| Требование | Версия |
+| --- | --- |
+| MODX Revolution | 3.0.3+ |
+| PHP | 8.2+ |
+| MySQL | 5.7+ / MariaDB 10.3+ |
+
+### Зависимости MODX
+
+- **pdoTools 3.x** — для работы сниппетов и шаблонизатора Fenom
+- **[VueTools](/components/vuetools/)** — Vue 3 и PrimeVue для административного интерфейса
+- **[Scheduler](/components/scheduler/)** *(опционально)* — для фоновых задач (импорт, уведомления, очистка)
+
+::: warning VueTools
+MiniShop3 использует Vue 3 для современного интерфейса админки. Пакет **[VueTools](/components/vuetools/)** должен быть установлен до или вместе с MiniShop3. При отсутствии пакета будет показано сообщение с инструкцией по установке.
+:::
+
+### Composer библиотеки
+
+MiniShop3 использует следующие PHP библиотеки (включены в пакет):
+
+| Библиотека | Версия | Назначение |
+| --- | --- | --- |
+| [nikic/fast-route](https://github.com/nikic/FastRoute) | ^1.3 | Маршрутизация REST API |
+| [intervention/image](https://image.intervention.io/) | ^3.0 | Обработка изображений (ресайз, водяные знаки) |
+| [robmorgan/phinx](https://phinx.org/) | ^0.16 | Миграции базы данных |
+| [ramsey/uuid](https://uuid.ramsey.dev/) | ^4.7 | Генерация UUID для токенов |
+| [brick/math](https://github.com/brick/math) | ^0.12 | Точная арифметика (зависимость UUID и др.) |
+
+Валидация форм и API — собственный `ValidationService` (`ms3_validation_service`), пакет `rakit/validation` удалён.
+
+## Установка
+
+### Способ 1: Через менеджер пакетов (рекомендуется)
+
+Стандартный способ установки через менеджер пакетов MODX с подключёнными репозиториями:
+
+1. Перейдите в **Пакеты → Установщик**
+2. Нажмите **Загрузить пакеты**
+3. Установите **[VueTools](/components/vuetools/)** (если ещё не установлен)
+4. Найдите **MiniShop3** в списке доступных пакетов
+5. Нажмите **Download** и затем **Install**
+
+Пакет доступен в репозиториях [modx.com](https://modx.com/extras/) и [modstore.pro](https://modstore.pro/).
+
+### Способ 2: Загрузка транспортного пакета
+
+Если репозитории недоступны или нужна конкретная версия:
+
+1. Скачайте транспортный пакет со страницы [релизов GitHub](https://github.com/modx-pro/MiniShop3/releases)
+2. Загрузите файл `.transport.zip` в `/core/packages/` вашего сайта
+3. Перейдите в **Пакеты → Установщик**
+4. Нажмите **Искать пакеты локально**
+5. Найдите MiniShop3 в списке и нажмите **Install**
+
+### Способ 3: Установка из исходников (для разработчиков)
+
+Этот способ подходит для разработчиков, которым нужны самые свежие наработки:
+
+::: tip Предварительные требования
+Перед установкой MiniShop3 убедитесь, что на сайте установлен пакет **[VueTools](/components/vuetools/)**. Он предоставляет Vue 3 и PrimeVue через import maps.
+:::
+
+```bash
+# Клонирование репозитория
+git clone https://github.com/modx-pro/MiniShop3.git
+cd MiniShop3
+
+# Установка PHP зависимостей
+cd core/components/minishop3
+composer install
+cd ../../..
+
+# Сборка Vue виджетов (требуется Node.js 18+)
+cd vueManager
+npm install
+npm run build
+cd ..
+
+# Сборка и установка компонента
+# Откройте _build/build.php в браузере или выполните:
+php _build/build.php
+```
+
+После установки перейдите в **Пакеты → MiniShop3** для настройки магазина.
+
+Подробное руководство по первоначальной настройке — на странице [Быстрый старт](quick-start).
+
+## Структура компонента
+
+### Ядро (core/components/minishop3/)
+
+```
+core/components/minishop3/
+├── bootstrap.php           # Инициализация компонента
+├── config/
+│   ├── routes/             # Маршруты REST API
+│   ├── combos/             # Комбобоксы для админки
+│   ├── filters/            # Фильтры для гридов
+│   └── ms3.services.d/     # Кастомные сервисы
+├── controllers/            # Контроллеры страниц админки
+├── elements/
+│   ├── snippets/           # Сниппеты (msProducts, msCart, msOrder...)
+│   ├── chunks/             # Чанки (шаблоны Fenom)
+│   ├── plugins/            # MODX плагины
+│   ├── tasks/              # Задачи Scheduler
+│   └── templates/          # Шаблоны страниц фронтенда
+├── lexicon/                # Языковые файлы (en, ru)
+├── migrations/             # Миграции Phinx (включая сиды)
+├── schema/                 # xPDO схема БД
+├── src/
+│   ├── Controllers/        # Бизнес-логика (Cart, Order, Customer)
+│   ├── Model/              # xPDO модели
+│   ├── Processors/         # AJAX процессоры (namespace MiniShop3\Processors\*)
+│   ├── Services/           # Сервисы (Format, AuthManager...)
+│   ├── Notifications/      # Система уведомлений
+│   ├── Router/             # Маршрутизатор API
+│   ├── Middleware/         # Middleware для API
+│   ├── Utils/              # Утилиты (ImportCSV...)
+│   ├── MiniShop3.php       # Главный класс компонента
+│   └── ServiceRegistry.php # Реестр сервисов
+└── vendor/                 # Composer зависимости
+```
+
+### Фронтенд (assets/components/minishop3/)
+
+```
+assets/components/minishop3/
+├── api.php                 # Точка входа REST API
+├── connector.php           # AJAX коннектор админки
+├── js/
+│   ├── mgr/                # JS админки (Vue bundles + legacy Ext resource)
+│   └── web/                # JavaScript сайта (нативный JS)
+├── css/
+│   ├── mgr/                # Стили админки
+│   └── web/                # Стили сайта
+├── img/                    # Изображения
+└── payment/                # Обработчики платёжных систем
+```

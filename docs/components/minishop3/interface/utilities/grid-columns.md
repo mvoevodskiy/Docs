@@ -1,0 +1,763 @@
+---
+title: Колонки гридов
+---
+# Утилиты: Колонки гридов
+
+Настройка колонок в таблицах админки MiniShop3.
+
+## Назначение
+
+![Утилита «Колонки гридов»](/components/minishop3/screenshots/mgr-grid-columns.png)
+
+::: tip Cookbook
+Пошаговые примеры badge-колонки в заказах и редактирование прямо в таблице: [Cookbook колонок грида](/components/minishop3/manager/grid-config/cookbook).
+:::
+
+- Включать и отключать колонки
+- Изменять порядок колонок
+- Настраивать сортировку и фильтрацию
+- Задавать ширину колонок
+- Добавлять свои колонки
+- Настраивать редактирование прямо в таблице (для грида `category-products`)
+
+::: info Начиная с версии 1.7.0
+Системная настройка `ms3_category_grid_fields` удалена. Настройка колонок таблицы товаров в категории выполняется только через этот интерфейс.
+:::
+
+## Доступные гриды
+
+| Грид | Описание |
+| --- | --- |
+| `customers` | Список покупателей |
+| `orders` | Список заказов |
+| `category-products` | Список товаров в категории |
+| `order_products` | Товары в заказе |
+| `vendors` | Список производителей |
+
+Есть и шестой грид из поставки — `deliveries`. В выпадающем списке утилиты его нет, настраивается он только через `GET` и `PUT /api/mgr/grid-config/deliveries`.
+
+## Интерфейс
+
+### Выбор грида
+
+Вверху страницы выберите грид из списка.
+
+### Действия
+
+- **Перетаскивание** — изменение порядка колонок
+- **Редактирование** — клик на строку открывает диалог
+- **Добавление** — кнопка для создания новой колонки
+
+## Параметры колонки
+
+### Основные
+
+| Параметр | Описание |
+| --- | --- |
+| Имя поля | Имя поля из модели или алиас |
+| Название | Заголовок колонки |
+| Видимость | Отображать колонку |
+| Сортировка | Разрешить сортировку по клику |
+| Фильтрация | Показать поле фильтра |
+| Заморожена | Фиксировать при прокрутке |
+
+### Размеры
+
+| Параметр | Описание |
+| --- | --- |
+| Ширина | Ширина в пикселях или % |
+| Мин. ширина | Минимальная ширина при изменении размера |
+
+### Тип колонки
+
+| Тип | Описание |
+| --- | --- |
+| `model` | Поле из модели данных |
+| `template` | Шаблонная колонка (HTML) |
+| `relation` | Данные из связанной таблицы |
+| `badge` | Цветная метка (`source_field`, `color_field`) |
+| `option` | Значение опции товара (грид `category-products`) |
+| `computed` | Вычисляемое значение |
+| `image` | Отображение изображения |
+| `boolean` | Флаг да/нет |
+| `price` | Денежное значение (`displayConfig`: валюта, decimals) |
+| `weight` | Вес (`displayConfig`: unit, decimals) |
+| `datetime` | Дата и время (`displayConfig`: format) |
+| `actions` | Колонка действий |
+
+## Типы колонок
+
+### Поле модели (`model`)
+
+Стандартная колонка: значение поля.
+
+```text
+Тип: model
+Имя поля: email
+Название: Email
+```
+
+### Шаблон (`template`)
+
+Колонка с HTML-шаблоном.
+
+```text
+Тип: template
+Шаблон: <a href="mailto:{email}">{email}</a>
+```
+
+Доступные переменные — поля текущей записи в фигурных скобках.
+
+### Цветная метка (`badge`)
+
+Цветная метка по тексту и HEX-цвету из других полей строки. В гриде `orders` колонка `order_status` берёт подпись из `status_name` и цвет из `status_color`.
+
+```text
+Тип: badge
+source_field: status_name
+color_field: status_color
+```
+
+::: info Шаблон безопасен по данным
+Подстановка ловит только `{имя_поля}` из букв, цифр и подчёркиваний, а значение прогоняется через HTML-экранирование. Разметку задаёт сам шаблон: HTML, попавший в данные записи, выведется текстом и не исполнится ([#920](https://github.com/modx-pro/MiniShop3/issues/920)). Пустое значение и `null` дают пустую строку.
+:::
+
+### Опция товара (`option`)
+
+Колонка опции в гриде `category-products`. В конфиге укажите `option.key` (ключ опции из `msOption`).
+
+```text
+Тип: option
+option.key: color
+```
+
+::: warning Имя колонки проверяется на коллизию
+В гриде `category-products` имя своей колонки типа `option` или `relation` не должно совпадать ни с одной из 24 встроенных колонок товара, ни с зарезервированным словом SQL. Опция `color` в примере выше — именно такой случай: встроенная колонка `color` уже есть.
+
+Сервер отклонит такое имя и подскажет альтернативу — `option_color` для опции, `vendor_address` для связи. Сам `option.key` при этом остаётся прежним, меняется только имя колонки в гриде.
+:::
+
+### Связь (`relation`)
+
+Данные из связанной таблицы.
+
+**Параметры связи:**
+
+| Параметр | Описание |
+| --- | --- |
+| Таблица | Короткое имя модели MiniShop3 (`msOrder`), полное имя класса или имя таблицы без префикса |
+| Внешний ключ | Поле для связи |
+| Отображаемое поле | Какое поле показывать |
+| Агрегация | COUNT, SUM, AVG, MIN, MAX. В гриде `category-products` агрегация не поддерживается — такая колонка не сохранится |
+
+**Пример — количество заказов покупателя:**
+
+```text
+Тип: relation
+Таблица: msOrder
+Внешний ключ: customer_id
+Агрегация: COUNT
+```
+
+### Вычисляемое значение (`computed`)
+
+Значение вычисляется на сервере. В JSON config обязателен ключ **`computed.className`** (класс реализует `ComputedFieldInterface`):
+
+```json
+{
+  "type": "computed",
+  "computed": {
+    "className": "MyComponent\\Columns\\TotalSpentColumn"
+  }
+}
+```
+
+### Изображение (`image`)
+
+Миниатюра изображения.
+
+```text
+Тип: image
+Имя поля: image
+```
+
+### Флаг (`boolean`)
+
+Флаг с иконкой.
+
+```text
+Тип: boolean
+Имя поля: active
+```
+
+### Цена (`price`)
+
+Числовое поле как цена. Параметры в JSON **displayConfig**:
+
+| Ключ | Описание |
+| --- | --- |
+| `decimals` | Знаков после запятой |
+| `currency` | Символ валюты |
+| `currency_position` | `before` или `after` |
+| `thousands_separator` | Разделитель тысяч |
+| `decimal_separator` | Разделитель дробной части |
+
+```text
+Тип: price
+Имя поля: price
+displayConfig: {"decimals":2,"currency":"₽","currency_position":"after","thousands_separator":" "}
+```
+
+Значения по умолчанию зашиты в код: `decimals` 2, разделитель тысяч — пробел, дробной части — запятая, валюта пустая, позиция `after`. Системных настроек цены грид не читает. У веса дефолты свои — 2 знака и «кг».
+
+### Вес (`weight`)
+
+Вес отображается с единицей измерения:
+
+```text
+Тип: weight
+Имя поля: weight
+displayConfig: {"decimals":2,"unit":"кг","unit_position":"after"}
+```
+
+### Дата и время (`datetime`)
+
+```text
+Тип: datetime
+Имя поля: createdon
+displayConfig: {"format":"dd.MM.yyyy HH:mm"}
+```
+
+Формат — собственный шаблон MiniShop3, а не PrimeVue. Поддерживаются токены `yyyy`, `yy`, `MM`, `dd`, `HH`, `mm`, `ss`; каждый заменяется ровно один раз, поэтому повтор токена в шаблоне не отработает.
+
+### Действия (`actions`)
+
+Колонка с кнопками действий. Встроенные и свои обработчики.
+
+**Конфигурация действий:**
+
+```json
+[
+  {
+    "name": "edit",
+    "handler": "edit",
+    "icon": "pi-pencil",
+    "label": "Редактировать",
+    "severity": null
+  },
+  {
+    "name": "delete",
+    "handler": "delete",
+    "icon": "pi-trash",
+    "label": "Удалить",
+    "severity": "danger",
+    "confirm": true,
+    "confirmMessage": "Вы уверены, что хотите удалить запись?"
+  }
+]
+```
+
+**Параметры inline-редактирования колонки:**
+
+| Параметр | Описание |
+| --- | --- |
+| `editable` | Разрешить правку значения прямо в строке |
+| `editor_type` | Редактор: `text`, `number`, `select`, `combo` |
+| `editor_options` | Варианты для `select` |
+| `editor_reference` | Связанная модель для `combo` |
+| `editor_combo_endpoint` | Путь, откуда `combo` берёт варианты. Принимается только из списка разрешённых |
+
+Сквозной пример — в [Cookbook настройки гридов](/components/minishop3/manager/grid-config/cookbook).
+
+**Параметры действия:**
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `name` | string | Уникальное имя действия |
+| `handler` | string | Имя обработчика из реестра |
+| `icon` | string | Полный класс PrimeIcons, например `pi-pencil` |
+| `label` | string | Текст подсказки / ключ лексикона |
+| `severity` | string | Стиль кнопки: `danger`, `success`, `secondary`, `info`, `warn` |
+| `confirm` | boolean | Требовать подтверждение |
+| `confirmMessage` | string | Текст подтверждения |
+| `visible` | boolean | Видимость кнопки |
+| `disabled` | boolean/function | Отключение кнопки |
+| `disabledField` | string | Поле записи для проверки disabled |
+| `confirmTitle` | string | Заголовок окна подтверждения, ключ лексикона |
+| `confirmAccept` | string | Подпись кнопки согласия |
+| `confirmReject` | string | Подпись кнопки отказа |
+| `permission` | string | Право MODX: без него кнопка не рисуется |
+| `toggleField` | string | Поле записи, по которому кнопка переключается. Штатный механизм кнопки публикации |
+| `iconOff` | string | Иконка, когда `toggleField` истинно |
+| `labelOff` | string | Подпись, когда `toggleField` истинно |
+
+В тексте подтверждения работает подстановка `{поле}` — значения берутся из строки записи.
+
+**Встроенные обработчики:**
+
+| Обработчик | Описание |
+| --- | --- |
+| `edit` | Открыть запись на редактирование |
+| `delete` | Удалить запись |
+| `view` | Просмотр записи |
+| `addresses` | Управление адресами (для покупателей) |
+| `publish` | Переключить публикацию, работает с `toggleField` |
+| `duplicate` | Открыть окно дублирования ресурса MODX |
+| `refresh` | Обновить грид |
+
+`publish` и `duplicate` поставляются в конфигурации грида товаров категории.
+
+## Примеры настройки
+
+### Добавить колонку «Сумма заказов»
+
+1. Нажмите «Добавить колонку»
+2. Заполните:
+   - Имя: `total_spent`
+   - Название: `Сумма заказов`
+   - Тип: `relation`
+   - Таблица: `msOrder`
+   - Внешний ключ: `customer_id`
+   - Отображаемое поле: `cost`
+   - Агрегация: `SUM`
+3. Сохраните
+
+### Ссылка в колонке email
+
+1. Найдите колонку `email`.
+2. Смените тип на `template`.
+3. Шаблон: `<a href="mailto:{email}">{email}</a>`.
+4. Сохраните.
+
+## API-эндпоинты
+
+### Получение конфигурации грида
+
+```http
+GET /api/mgr/grid-config/{grid_name}
+```
+
+**Ответ:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "columns": [
+      {
+        "name": "id",
+        "label": "ID",
+        "visible": true,
+        "sortable": true,
+        "filterable": false,
+        "frozen": true,
+        "width": 60,
+        "minWidth": "80px",
+        "isSystem": true,
+        "type": "model"
+      }
+    ],
+    "direct_filter_keys": ["query", "status_id"]
+  }
+}
+```
+
+Ключи `minWidth` и `isSystem` приходят в camelCase; в базе колонка называется `min_width`, и в теле запроса на сохранение тоже используется `minWidth`. Поверх них разворачивается JSON из `config`.
+
+Ключ `editor_references` присутствует только у `grid_key=category-products`. У остальных гридов его в ответе нет вовсе — не пустой массив, а отсутствующий ключ.
+
+### Работа с отдельной колонкой
+
+Кроме сохранения всей конфигурации есть два точечных роута:
+
+| Метод | Роут | Описание |
+| --- | --- | --- |
+| `POST` | `/api/mgr/grid-config/{grid_key}/field` | Добавить колонку. В теле `field_name`, `label`, `type`, `config` и прочие параметры колонки |
+| `PUT` | `/api/mgr/grid-config/{grid_key}/field/{field_name}` | Изменить одну колонку. Системные колонки этим путём не правятся |
+
+Точечные роуты не трогают остальные колонки — в отличие от полного сохранения ниже.
+
+### Сохранение конфигурации
+
+```http
+PUT /api/mgr/grid-config/{grid_key}
+```
+
+**Тело запроса:**
+
+```json
+{
+  "fields": [
+    {
+      "name": "id",
+      "label": "ID",
+      "visible": true,
+      "sortable": true,
+      "filterable": false,
+      "frozen": true,
+      "width": 60,
+      "type": "model"
+    }
+  ]
+}
+```
+
+::: danger Тело запроса — полный список колонок
+Сохранение сверяет присланный `fields` с тем, что лежит в базе, и **удаляет** все несистемные колонки, которых в массиве нет. Частичный payload с одной изменённой колонкой снесёт все остальные свои колонки этого грида.
+
+Правильный порядок: прочитать конфигурацию через `GET`, изменить нужное в полученном массиве и отправить его целиком.
+:::
+
+::: warning Права
+`GET /api/mgr/grid-config/{grid_key}` требует `view_document`. Запись (`PUT`, `POST`, `DELETE` колонки) — `mssetting_save`.
+:::
+
+### Удаление колонки
+
+```http
+DELETE /api/mgr/grid-config/{grid_key}/{field_name}
+```
+
+Системные колонки (`is_system`) удалить нельзя.
+
+## Системные колонки
+
+Системные колонки ограничены:
+
+- Нельзя удалить
+- Нельзя править точечно через диалог колонки: `PUT /api/mgr/grid-config/{grid}/field/{name}` отвечает «Cannot modify system field»
+- Через общее сохранение конфигурации (`PUT /api/mgr/grid-config/{grid_key}` со всем массивом `fields`) меняются подпись, видимость, сортировка, фильтрация, закрепление, ширина и порядок
+
+Обычно это `id` и колонки действий.
+
+## Свои действия
+
+Глобальный реестр `MS3ActionRegistry` добавляет свои кнопки в колонку действий.
+
+### Реестр действий
+
+Реестр доступен как `window.MS3ActionRegistry`:
+
+- регистрируете обработчики действий
+- подключаете хуки до и после существующих действий
+- переопределяете встроенные обработчики
+
+### API реестра
+
+#### register(name, handler, options)
+
+Регистрирует обработчик действия.
+
+**Параметры:**
+
+| Параметр | Тип | Описание |
+| --- | --- | --- |
+| `name` | string | Имя действия |
+| `handler` | function | Функция-обработчик `(data, context) => void` |
+| `options.override` | boolean | Разрешить перезапись существующего обработчика |
+
+**Параметры handler:**
+
+- `data` — объект данных строки грида
+- `context` — контекст выполнения:
+  - `gridId` — идентификатор грида
+  - `emit(event, data)` — отправка события
+  - `refresh()` — обновление грида
+  - `toast` — сервис уведомлений PrimeVue
+  - `confirm` — сервис подтверждений PrimeVue
+  - `_(key)` — функция локализации
+
+#### registerBeforeHook(actionName, hook)
+
+Регистрирует хук, выполняемый **перед** действием.
+
+```javascript
+MS3ActionRegistry.registerBeforeHook('delete', (data, context) => {
+  // Вернуть false для отмены действия
+  if (data.is_system) {
+    context.toast.add({
+      severity: 'warn',
+      summary: 'Запрещено',
+      detail: 'Нельзя удалить системную запись'
+    })
+    return false
+  }
+  return true
+})
+```
+
+#### registerAfterHook(actionName, hook)
+
+Регистрирует хук, выполняемый **после** действия.
+
+```javascript
+MS3ActionRegistry.registerAfterHook('delete', (data, context, result) => {
+  console.log('Запись удалена:', data.id)
+  // Можно отправить аналитику, логировать и т.д.
+})
+```
+
+#### Другие методы
+
+| Метод | Описание |
+| --- | --- |
+| `has(name)` | Проверить наличие обработчика |
+| `get(name)` | Получить обработчик |
+| `unregister(name)` | Удалить обработчик. Не снимаются только `edit`, `delete`, `view` и `refresh`; `addresses`, `publish` и `duplicate` снять можно |
+| `getRegisteredActions()` | Получить список всех зарегистрированных действий |
+| `execute(name, data, context)` | Выполнить действие программно |
+| `getActionInfo(name)` | Метаданные обработчика: ключ подписи, иконка. По ним редактор действий строит выпадающий список |
+
+### Примеры своих действий
+
+#### Пример 1: Блокировка покупателя
+
+**Шаг 1. Регистрация обработчика** (в плагине MODX или своём JS):
+
+```javascript
+// Файл: assets/components/mycomponent/js/customer-actions.js
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Ждём загрузки реестра
+  if (!window.MS3ActionRegistry) {
+    console.error('MS3ActionRegistry not available')
+    return
+  }
+
+  // Регистрируем действие "Заблокировать"
+  MS3ActionRegistry.register('blockCustomer', async (data, context) => {
+    try {
+      const response = await fetch('/assets/components/minishop3/connector.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          action: 'MyComponent\\Processors\\Customer\\Block',
+          id: data.id,
+          HTTP_MODAUTH: MODx.siteId
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        context.toast.add({
+          severity: 'success',
+          summary: 'Успех',
+          detail: `Покупатель ${data.email} заблокирован`,
+          life: 3000
+        })
+        context.refresh() // Обновить грид
+      } else {
+        throw new Error(result.message)
+      }
+    } catch (error) {
+      context.toast.add({
+        severity: 'error',
+        summary: 'Ошибка',
+        detail: error.message,
+        life: 5000
+      })
+    }
+  })
+
+  // Регистрируем действие "Разблокировать"
+  MS3ActionRegistry.register('unblockCustomer', async (data, context) => {
+    const response = await fetch('/assets/components/minishop3/connector.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        action: 'MyComponent\\Processors\\Customer\\Unblock',
+        id: data.id,
+        HTTP_MODAUTH: MODx.siteId
+      })
+    })
+
+    const result = await response.json()
+    if (result.success) {
+      context.toast.add({
+        severity: 'success',
+        summary: 'Покупатель разблокирован',
+        life: 3000
+      })
+      context.refresh()
+    }
+  })
+})
+```
+
+**Шаг 2. Подключение скрипта** через плагин MODX:
+
+```php
+<?php
+// Плагин: MyCustomerActions
+// События: OnManagerPageBeforeRender
+
+if ($modx->event->name !== 'OnManagerPageBeforeRender') return;
+
+// Только на странице покупателей
+$controller = $modx->controller ?? null;
+if (!$controller || strpos(get_class($controller), 'Customers') === false) return;
+
+$modx->regClientStartupScript(
+    MODX_ASSETS_URL . 'components/mycomponent/js/customer-actions.js'
+);
+```
+
+**Шаг 3. Настройка колонки действий.**
+
+::: danger Через диалог колонка `actions` не сохраняется
+Во всех шести гридах из поставки колонка `actions` помечена `is_system = 1`. Иконка карандаша рядом с ней не заблокирована, диалог откроется и даже даст добавить действие, но сохранение шлёт `PUT /api/mgr/grid-config/{grid}/field/actions` и получает «Cannot modify system field».
+
+Рабочий путь — общее сохранение конфигурации: `PUT /api/mgr/grid-config/customers` с полным массивом `fields`, где у колонки `actions` подменён ключ `actions`. Системность там не проверяется.
+:::
+
+Новое действие в массиве `actions` колонки:
+
+```json
+{
+  "name": "blockCustomer",
+  "handler": "blockCustomer",
+  "icon": "pi-ban",
+  "severity": "danger",
+  "confirm": true,
+  "confirmMessage": "Заблокировать покупателя {email}?"
+}
+```
+
+::: warning Своего обработчика не будет в списке
+Поле «Обработчик» в редакторе действий — выпадающий список без свободного ввода, и он показывает только то, что уже зарегистрировано в реестре **на текущей странице**. Плагин из шага 2 подключает скрипт лишь на странице покупателей, поэтому на странице утилит `blockCustomer` в списке не появится. Либо снимите в плагине фильтр по контроллеру, либо задавайте `handler` правкой JSON через API.
+:::
+
+#### Пример 2: Копирование товара
+
+Свой обработчик здесь нужен не всегда: `duplicate` входит в семь встроенных действий реестра, и в гриде товаров категории он уже открывает окно `modx-window-resource-duplicate` и перезагружает таблицу. Зарегистрировать своё действие под именем `duplicate` без `options.override` реестр не даст.
+
+Пример ниже пригодится для другого грида или если нужно своё поведение. Штатного процессора дублирования в MiniShop3 нет, поэтому вызывается ядерный MODX `resource/duplicate` (`msProduct` наследует ресурс):
+
+```javascript
+MS3ActionRegistry.register('duplicateProduct', async (data, context) => {
+  const response = await fetch('/assets/components/minishop3/connector.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      action: 'resource/duplicate',
+      id: data.id,
+      HTTP_MODAUTH: MODx.siteId
+    })
+  })
+
+  const result = await response.json()
+
+  if (result.success) {
+    context.toast.add({
+      severity: 'success',
+      summary: 'Товар скопирован',
+      detail: `Создан товар ID: ${result.object.id}`,
+      life: 3000
+    })
+    context.refresh()
+  }
+})
+```
+
+**Конфигурация действия:**
+
+```json
+{
+  "name": "duplicate",
+  "handler": "duplicateProduct",
+  "icon": "pi-copy",
+  "label": "Копировать",
+  "severity": "secondary",
+  "confirm": false
+}
+```
+
+#### Пример 3: Отправка уведомления
+
+Штатного процессора отправки уведомления нет — REST-роуты `/api/mgr/notifications` отдают только CRUD конфигураций. Для кнопки «Отправить» реализуйте свой эндпоинт (внутри — `NotificationManager` или `StatusChangedNotification`) и вызовите его из обработчика:
+
+```javascript
+MS3ActionRegistry.register('sendNotification', async (data, context) => {
+  const response = await fetch('/assets/components/mycomponent/notify.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ customer_id: data.id })
+  })
+
+  const result = await response.json()
+
+  if (result.success) {
+    context.toast.add({
+      severity: 'success',
+      summary: 'Уведомление отправлено',
+      detail: `Email: ${data.email}`,
+      life: 3000
+    })
+  }
+})
+```
+
+#### Пример 4: Условная видимость кнопки
+
+Кнопку отключают полем записи `disabledField`:
+
+```javascript
+// В конфигурации колонки
+{
+  "name": "unblock",
+  "handler": "unblockCustomer",
+  "icon": "pi-unlock",
+  "label": "Разблокировать",
+  "severity": "success",
+  // Кнопка неактивна, если покупатель не заблокирован
+  "disabledField": "active"  // disabled когда active = true
+}
+```
+
+### Хуки встроенных действий
+
+Встроенные `edit` и `delete` тоже идут через реестр, поэтому на них вешаются те же хуки.
+
+Запись удалений в журнал аудита:
+
+```javascript
+MS3ActionRegistry.registerAfterHook('delete', async (data, context, result) => {
+  // Отправить в систему аудита
+  await fetch('/api/audit/log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'delete',
+      entity: context.gridId,
+      entityId: data.id,
+      user: MODx.user?.id,
+      timestamp: new Date().toISOString()
+    })
+  })
+})
+```
+
+Запрет удаления:
+
+```javascript
+MS3ActionRegistry.registerBeforeHook('delete', (data, context) => {
+  // Не давать удалять оплаченные заказы
+  if (context.gridId === 'orders' && data.status === 2) {
+    context.toast.add({
+      severity: 'error',
+      summary: 'Запрещено',
+      detail: 'Оплаченный заказ удалить нельзя',
+      life: 5000
+    })
+    return false // Отменить действие
+  }
+  return true // Продолжить
+})
+```
+
+### Доступные иконки
+
+Иконки — [PrimeIcons](https://primevue.org/icons). В выпадающем списке редактора действий их семнадцать: `pi-pencil`, `pi-trash`, `pi-eye`, `pi-check`, `pi-times`, `pi-ban`, `pi-lock`, `pi-unlock`, `pi-user`, `pi-cog`, `pi-copy`, `pi-download`, `pi-external-link`, `pi-list`, `pi-refresh`, `pi-send`, `pi-print`.
+
+Произвольный класс PrimeIcons задаётся только правкой JSON конфигурации колонки через API.

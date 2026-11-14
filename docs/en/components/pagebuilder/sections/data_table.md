@@ -1,0 +1,120 @@
+---
+title: "Data table"
+description: "Rows from a PageBuilder embedded table (embeddedTable) (Pro)"
+---
+
+# Data table
+
+Data lives in CMP or the resource **Tables** tab; the section only renders a chosen table with a row limit.
+
+![Data table](/components/pagebuilder/screenshots/sections/data_table.jpg)
+
+::: info
+Requires PageBuilder Pro.
+:::
+
+## Why a CMP table
+
+- One CMP table, many sections can share a `table_key`
+- Update price list without editing every page
+- Row limit per section
+
+## Typical data
+
+- Service price list
+- Event schedule
+- Pickup points from one data source
+
+## Page examples
+
+- Services: [Hero](hero) → [Data table](data_table) price list → [FAQ](faq)
+- Event: [Data table](data_table) schedule → [Contact form](contact_form)
+
+## table_key and limit
+
+In **Table**, set `table_key` from CMP and a row **Limit**. Edit data outside the section inspector. The type is marked `"cacheable": false`.
+
+## Similar sections
+
+- [Spec table](spec_table) for fixed pairs on one page
+- [Rich text](richtext) for one-off copy without CMP
+
+## Block parameters
+
+| Parameter | Value |
+| --- | --- |
+| key | `data_table` |
+| Layer | Pro |
+| Category | content (`content`) |
+| Chunk | `pagebuilder_data_table` |
+| Requires | pro |
+
+## Inspector fields
+
+Field types: [field types reference](../fields/types).
+
+### Title (`title`)
+
+Type [text](../fields/text#output-in-section-data). Optional.
+
+### Intro (`intro`)
+
+Type [textarea](../fields/textarea#output-in-section-data). Optional.
+
+### Table (`table`)
+
+Type [embeddedTable](../fields/embeddedTable#output-in-section-data). Required. Link to a PageBuilder CMP table: table key and row limit.
+
+## Site output
+
+`pb-data-table` HTML table.
+
+## Section data {#output-in-section-data}
+
+Example payload after save:
+
+```json
+{
+  "title": "Section title",
+  "intro": "Short intro before the main content.",
+  "table": {
+    "table_key": "prices",
+    "limit": 10
+  }
+}
+```
+
+## Chunk template
+
+Fenom chunk `pagebuilder_data_table`:
+
+```fenom
+<section class="pb-section pb-section--data-table pb-data-table{if $cssClass} {$cssClass|escape}{/if}" data-pb-section="data_table"{if $id} id="pb-{$id|escape}"{/if}>
+  <div class="pb-section__inner pb-data-table__inner">
+    {if $title}
+      <h2 class="pb-heading pb-data-table__title">{$title|pb_text}</h2>
+    {/if}
+    {if $intro}
+      <p class="pb-data-table__intro">{$intro|escape}</p>
+    {/if}
+    {if $table.table_key}
+      {set $resourceId = $resource_id|default:($modx->resource ? $modx->resource->get('id') : 0)}
+      {set $tableListing = $modx->runSnippet('PageBuilderTableRows', [
+        'resource_id' => $resourceId,
+        'table_key' => $table.table_key,
+        'limit' => $table.limit|default:20,
+        'return' => 'html'
+      ])}
+      <div class="pb-data-table__embed">
+        {$tableListing}
+      </div>
+    {/if}
+  </div>
+</section>
+```
+
+## See also
+
+- [Section catalog](index)
+- [Fields overview](../fields/overview)
+- [Frontend output](../frontend)

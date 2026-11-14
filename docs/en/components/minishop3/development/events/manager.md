@@ -1,0 +1,424 @@
+---
+title: Manager events
+---
+# Manager events
+
+Customizing the MiniShop3 manager interface.
+
+## msOnManagerCustomCssJs
+
+Fired when MiniShop3 manager pages load. Lets you add your own CSS and JavaScript files.
+
+### Parameters
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `controller` | `object` | Page controller object |
+| `page` | `string` | Page identifier |
+
+### Available pages
+
+`page` is set in each controller's `loadCustomCssJs()`:
+
+| `page` | Screen | Controller file |
+| --- | --- | --- |
+| `product_create` | Create product | `controllers/product/create.class.php` |
+| `product_update` | Edit product | `controllers/product/update.class.php` |
+| `category_create` | Create category | `controllers/category/create.class.php` |
+| `category_update` | Edit category | `controllers/category/update.class.php` |
+| `orders` | Order list (Vue) | `controllers/mgr/orders.class.php` |
+| `order` | Order card | `controllers/mgr/order.class.php` |
+| `customers` | Customer list (Vue) | `controllers/mgr/customers.class.php` |
+| `settings` | Component settings | `controllers/mgr/settings.class.php` |
+| `notifications` | Notifications | `controllers/mgr/notifications.class.php` |
+| `utilities` | Utilities | `controllers/mgr/utilities.class.php` |
+
+::: info How the pages differ
+The MS3 screens reached from the component menu are built entirely on Vue, through a dedicated `addVueModule` and without ExtJS wrappers: `orders`, `order`, `customers`, `settings`, `notifications`, `utilities`.
+
+The product and category edit pages are hybrids: the MODX resource panel in ExtJS plus Vue modules on top of it. `product_update` loads `product-tabs.min.js`, `category_update` loads `category-products.min.js` and `category-options.min.js`. That is why the Plugin Registry below works on them.
+
+ExtJS only, with no Vue: `product_create` and `category_create`.
+:::
+
+### Adding files
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnManagerCustomCssJs':
+        $controller = $scriptProperties['controller'];
+        $page = $scriptProperties['page'];
+
+        // Add CSS
+        $controller->addCss('/assets/components/mycomponent/css/ms3-custom.css');
+
+        // Add JavaScript
+        $controller->addJavascript('/assets/components/mycomponent/js/ms3-custom.js');
+
+        // Add HTML (for ES modules)
+        $controller->addHtml('<script type="module" src="/assets/components/mycomponent/js/ms3-module.js"></script>');
+        break;
+}
+```
+
+### Conditional loading by page
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnManagerCustomCssJs':
+        $controller = $scriptProperties['controller'];
+        $page = $scriptProperties['page'];
+
+        // Shared styles for every page
+        $controller->addCss('/assets/components/mycomponent/css/common.css');
+
+        // Scripts for products only
+        if (in_array($page, ['product_create', 'product_update'])) {
+            $controller->addJavascript('/assets/components/mycomponent/js/product-extend.js');
+        }
+
+        // Scripts for orders only
+        if (in_array($page, ['orders', 'order'])) {
+            $controller->addJavascript('/assets/components/mycomponent/js/order-extend.js');
+        }
+
+        // Categories only
+        if ($page === 'category_update') {
+            $controller->addJavascript('/assets/components/mycomponent/js/category-extend.js');
+        }
+        break;
+}
+```
+
+### Passing data to JavaScript
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnManagerCustomCssJs':
+        $controller = $scriptProperties['controller'];
+        $page = $scriptProperties['page'];
+
+        // Data to hand over to JS
+        $config = [
+            'apiUrl' => '/assets/components/mycomponent/connector.php',
+            'userId' => $modx->user->get('id'),
+            'page' => $page,
+            'customSetting' => $modx->getOption('my_custom_setting'),
+        ];
+
+        // Pass config to JS
+        $controller->addHtml('
+            <script>
+                window.MyComponent = window.MyComponent || {};
+                window.MyComponent.config = ' . json_encode($config) . ';
+            </script>
+        ');
+
+        $controller->addJavascript('/assets/components/mycomponent/js/main.js');
+        break;
+}
+```
+
+::: tip Plugin Registry
+To add your own tabs to the product and order pages, use the Plugin Registry API:
+
+- [Product tabs integration](/en/components/minishop3/development/product-tabs-integration) — `MS3ProductTabsRegistry`
+- [Order tabs integration](/en/components/minishop3/development/order-tabs-integration) — `MS3OrderTabsRegistry`
+
+Both registries are wired up through this event with a `$page` check.
+:::
+
+---
+
+## Extending the ExtJS interface
+
+### Add a button to the product toolbar
+
+```php
+<?php
+// Plugin
+switch ($modx->event->name) {
+    case 'msOnManagerCustomCssJs':
+        $page = $scriptProperties['page'];
+
+        if (in_array($page, ['product_create', 'product_update'])) {
+            $controller = $scriptProperties['controller'];
+            $controller->addJavascript('/assets/components/mycomponent/js/product-toolbar.js');
+        }
+        break;
+}
+```
+
+```javascript
+// product-toolbar.js
+Ext.onReady(function() {
+    // Wait for the panel to initialise
+    var checkPanel = setInterval(function() {
+        var panel = Ext.getCmp('modx-panel-resource');
+        if (panel && panel.getTopToolbar) {
+            clearInterval(checkPanel);
+
+            // Add a button to the toolbar
+            var toolbar = panel.getTopToolbar();
+            toolbar.add('-');
+            toolbar.add({
+                text: 'My button',
+                iconCls: 'icon-cog',
+                handler: function() {
+                    MODx.msg.alert('Info', 'Button clicked!');
+                }
+            });
+            toolbar.doLayout();
+        }
+    }, 100);
+});
+```
+
+### Add a tab to the product card
+
+```php
+<?php
+switch ($modx->event->name) {
+    case 'msOnManagerCustomCssJs':
+        $page = $scriptProperties['page'];
+
+        if ($page === 'product_update') {
+            $controller = $scriptProperties['controller'];
+            $controller->addJavascript('/assets/components/mycomponent/js/product-tab.js');
+        }
+        break;
+}
+```
+
+```javascript
+// product-tab.js
+Ext.onReady(function() {
+    var checkTabs = setInterval(function() {
+        var tabs = Ext.getCmp('modx-resource-tabs');
+        if (tabs) {
+            clearInterval(checkTabs);
+
+            // Add a tab of your own
+            tabs.add({
+                title: 'My tab',
+                id: 'my-custom-tab',
+                xtype: 'panel',
+                layout: 'form',
+                autoHeight: true,
+                items: [{
+                    xtype: 'textfield',
+                    fieldLabel: 'Custom field',
+                    name: 'my_custom_field',
+                    anchor: '100%'
+                }, {
+                    xtype: 'textarea',
+                    fieldLabel: 'Description',
+                    name: 'my_description',
+                    anchor: '100%',
+                    height: 150
+                }]
+            });
+            tabs.doLayout();
+        }
+    }, 100);
+});
+```
+
+### A column in the orders grid
+
+The orders screen is built entirely in Vue — there is no ExtJS grid and no prototype to override. Columns come from the `msGridField` configuration: see [Grid columns](../../interface/utilities/grid-columns).
+
+---
+
+## Full example: extending the product card
+
+```php
+<?php
+/**
+ * Plugin: Extend product card
+ * Events: msOnManagerCustomCssJs
+ */
+
+switch ($modx->event->name) {
+    case 'msOnManagerCustomCssJs':
+        $controller = $scriptProperties['controller'];
+        $page = $scriptProperties['page'];
+
+        // Product pages only
+        if (!in_array($page, ['product_create', 'product_update'])) {
+            return;
+        }
+
+        $assetsUrl = MODX_ASSETS_URL . 'components/mycomponent/';
+
+        // CSS
+        $controller->addCss($assetsUrl . 'css/product-extend.css');
+
+        // Config for JS
+        $productId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+        $config = [
+            'productId' => $productId,
+            'assetsUrl' => $assetsUrl,
+            'connectorUrl' => $assetsUrl . 'connector.php',
+            'options' => [
+                'enableSync' => $modx->getOption('mycomp_enable_sync', null, true),
+                'apiKey' => $modx->getOption('mycomp_api_key'),
+            ],
+        ];
+
+        // Load the extra data for a product that already exists
+        if ($productId > 0) {
+            $product = $modx->getObject(\MiniShop3\Model\msProduct::class, $productId);
+            if ($product) {
+                $config['productData'] = [
+                    'article' => $product->get('article'),
+                    'vendor_id' => $product->get('vendor_id'),
+                ];
+            }
+        }
+
+        // Pass the config over
+        $controller->addHtml('
+            <script>
+                window.MyProductExtend = ' . json_encode($config) . ';
+            </script>
+        ');
+
+        // The main script
+        $controller->addJavascript($assetsUrl . 'js/product-extend.js');
+        break;
+}
+```
+
+```javascript
+// product-extend.js
+Ext.onReady(function() {
+    var config = window.MyProductExtend || {};
+
+    // Wait for the product form to load
+    var checkForm = setInterval(function() {
+        var form = Ext.getCmp('modx-panel-resource');
+        if (!form) return;
+
+        clearInterval(checkForm);
+
+        // 1. Add a sync button to the toolbar
+        var toolbar = form.getTopToolbar();
+        if (toolbar && config.options.enableSync) {
+            toolbar.add('-');
+            toolbar.add({
+                text: 'Sync',
+                iconCls: 'icon-refresh',
+                handler: function() {
+                    syncProduct(config.productId);
+                }
+            });
+            toolbar.doLayout();
+        }
+
+        // 2. Add the event handlers
+        form.on('success', function(response) {
+            console.log('Product saved:', response);
+            // Anything else you want after a save
+        });
+
+    }, 100);
+
+    // The sync function
+    function syncProduct(productId) {
+        if (!productId) {
+            MODx.msg.alert('Error', 'Save the product first');
+            return;
+        }
+
+        MODx.Ajax.request({
+            url: config.connectorUrl,
+            params: {
+                action: 'sync',
+                product_id: productId
+            },
+            listeners: {
+                success: {
+                    fn: function(response) {
+                        MODx.msg.alert('Success', 'Product synced');
+                    }
+                },
+                failure: {
+                    fn: function(response) {
+                        MODx.msg.alert('Error', response.message || 'Sync failed');
+                    }
+                }
+            }
+        });
+    }
+});
+```
+
+```css
+/* product-extend.css */
+
+/* Styles for the custom elements */
+.my-custom-field {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin: 10px 0;
+    background: #f9f9f9;
+}
+
+.my-sync-status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+.my-sync-status.synced {
+    background: #d4edda;
+    color: #155724;
+}
+
+.my-sync-status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.my-sync-status.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+```
+
+---
+
+## Recommendations
+
+### Avoid conflicts
+
+```javascript
+// Use unique namespaces
+window.MyComponent = window.MyComponent || {};
+window.MyComponent.init = function() {
+    // Your code
+};
+
+// Check element existence
+var panel = Ext.getCmp('modx-panel-resource');
+if (panel) {
+    // Safe to use panel
+}
+```
+
+### MiniShop3 has no event bus
+
+The global `ms3` in the manager is a plain object literal holding configuration and a token; it does not extend `Ext.util.Observable`. A `typeof ms3 !== 'undefined'` check passes, and the very next `ms3.on(...)` throws a `TypeError`. Subscribe to the native ExtJS or Vue events of the screen you need.
+
+### Load order
+
+```php
+// Use addLastJavascript for scripts that must load after core
+$controller->addLastJavascript('/assets/components/mycomponent/js/after-all.js');
+```

@@ -1,0 +1,90 @@
+---
+title: "checkbox"
+description: "Single boolean flag: true or false"
+---
+
+# Field checkbox
+
+Version: **Free**.
+
+<!-- ![checkbox](/components/pagebuilder/screenshots/fields/checkbox.jpg) -->
+
+## Why this type
+
+One checkbox for one option. The saved value is yes or no, not the string "1" or "0". With `showWhen` it shows or hides other fields.
+
+## When to use
+
+- "Show button", "Open in new tab"
+- Enable block or overlay flag
+- showWhen trigger for dependent fields
+
+## Tips
+
+Multiple independent flags use [checkboxgroup](checkboxgroup). Visible on/off switch fits [toggle](toggle) better.
+
+## Similar types
+
+- [toggle](toggle) for switch UI
+- [yesno](yesno) for classic MODX yes/no
+
+## Schema
+
+```json
+{
+  "name": "featured",
+  "type": "checkbox",
+  "label": "Featured",
+  "tab": "Content",
+  "width": 100,
+  "active": true
+}
+```
+
+## Value
+
+Boolean.
+
+## Section data {#output-in-section-data}
+
+Key `featured` in the section data:
+
+```json
+{
+  "featured": true
+}
+```
+
+## Chunk example
+
+::: code-group
+
+```modx
+<span class="badge">Featured</span>
+```
+
+```fenom
+{if $featured}<span class="badge">Featured</span>{/if}
+```
+
+:::
+
+## Common properties
+
+For fields with `name` that are stored in the section data:
+
+| Key | Type | Role | CMP |
+| --- | --- | --- | --- |
+| `tab` | string | Group subtitle in the inspector | yes |
+| `width` | 25, 33, 50, 66, 75, 100 | Field width as % of the row (flex). The CMP offers only these values | yes |
+| `description` | string | Hint under the label | yes |
+| `default` | any | Initial value for a new section | yes |
+| `active` | bool | `false` hides the field in the inspector | yes |
+| `required` | bool | Required on **publish** (draft still saves) | yes |
+
+See [fields overview](overview#obshchie-svoystva-polya).
+
+## See also
+
+- [Field types reference](types)
+- [Fields overview](overview)

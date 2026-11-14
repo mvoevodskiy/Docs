@@ -1,0 +1,139 @@
+import type { DefaultTheme, LocaleConfig } from 'vitepress'
+import type { DocsTheme } from '../theme/types/index.ts'
+import { generateSidebar } from '../theme/plugins/sidebar.ts'
+import { components } from '../theme/plugins/component.ts'
+import 'dotenv/config'
+
+export const SITE_NAME = 'Documentation hub for MODX extras and more'
+export const META_DESCRIPTION = 'A simple and easy-to-use Open-Source project by and for the community, where you can find and explore the documentation of all popular MODX extras, and developers can easily describe their'
+
+export const searchLocale: NonNullable<DefaultTheme.AlgoliaSearchOptions['locales']> = {
+  en: {
+    placeholder: 'Search docs',
+    translations: {
+      button: {
+        buttonText: 'Search',
+        buttonAriaLabel: 'Search'
+      },
+      modal: {
+        searchBox: {
+          clearButtonTitle: 'Reset search',
+          clearButtonAriaLabel: 'Reset search',
+          closeButtonText: 'Close search',
+          closeButtonAriaLabel: 'Close search',
+        },
+      },
+    },
+  },
+}
+
+export const config: LocaleConfig<DocsTheme.Config> = {
+  en: {
+    label: 'English',
+    lang: 'en',
+    description: META_DESCRIPTION,
+
+    head: [
+      ['meta', { property: 'og:site_name', content: SITE_NAME }],
+    ],
+
+    themeConfig: {
+      nav: getNav(),
+
+      sidebar: {
+        '/en/components/': generateSidebar({
+          root: ['docs/en/components/*.md', 'docs/en/components/*/index.md'],
+          ignore: ['docs/en/components/index.md'],
+        }),
+        '/en/guide/': getGuideSidebar(),
+      },
+
+      outline: {
+        label: 'On this page',
+        level: 'deep',
+      },
+
+      teamSectionTitle: 'Team',
+      sponsor: {
+        message: 'This service is free and open source, and its support and development depends on donations.',
+        linkText: 'Become a sponsor!',
+        link: process.env.SPONSOR_LINK,
+      },
+
+      docFooter: {
+        prev: 'Previous page',
+        next: 'Next page',
+      },
+      editLink: {
+        pattern: 'https://github.com/modx-pro/Docs/edit/master/docs/:path',
+        text: 'Suggest changes to this page',
+      },
+      feedback: {
+        text: 'Found an error?',
+      },
+
+      notFound: {
+        title: 'Page not found',
+        quote: `
+          <p>It looks like you followed an incorrect or outdated link.</p>
+          <br>
+          <p>This site is automatically generated from files located on GitHub, so links may change.</p>
+        `,
+        linkText: 'Back to home',
+        linkLabel: 'Back to home',
+      },
+
+      components: components.filter(component => component.path.startsWith('en/components/')),
+    },
+  }
+}
+
+function getGuideSidebar(): DefaultTheme.SidebarItem[] {
+  return [
+    {
+      text: 'Introduction',
+      items: [
+        { text: 'About', link: '/en/guide/about' },
+        { text: 'Getting Started', link: '/en/guide/getting-started' },
+        { text: 'Markdown', link: '/en/guide/markdown' },
+        { text: 'Mermaid diagrams', link: '/en/guide/mermaid' },
+        { text: 'VitePress Features', link: '/en/guide/vitepress' },
+        { text: 'Frontmatter', link: '/en/guide/frontmatter' },
+        { text: 'Spell checking (cspell)', link: '/en/guide/cspell' },
+      ],
+    },
+  ]
+}
+
+function getNav(): DefaultTheme.NavItem[] {
+  const guideItems: (DefaultTheme.NavItemWithLink | DefaultTheme.NavItemChildren)[] = [
+    { text: 'About', link: '/en/guide/about' },
+    { text: 'Getting Started', link: '/en/guide/getting-started' },
+    { text: 'Markdown', link: '/en/guide/markdown' },
+    { text: 'Mermaid diagrams', link: '/en/guide/mermaid' },
+    { text: 'VitePress Features', link: '/en/guide/vitepress' },
+    { text: 'Frontmatter', link: '/en/guide/frontmatter' },
+    { text: 'Spell checking (cspell)', link: '/en/guide/cspell' },
+  ]
+
+  if (process.env.SPONSOR_LINK) {
+    guideItems.push({
+      items: [
+        { text: '❤️ Become a sponsor!', link: process.env.SPONSOR_LINK }
+      ],
+    })
+  }
+
+  return [
+    {
+      text: 'Extras',
+      link: '/en/components/',
+      activeMatch: '/en/components/',
+    },
+    {
+      text: 'Introduction',
+      activeMatch: '/en/guide/',
+      items: guideItems,
+    },
+  ]
+}

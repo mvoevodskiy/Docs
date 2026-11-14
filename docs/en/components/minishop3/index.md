@@ -1,0 +1,342 @@
+---
+title: MiniShop3
+description: Modern e-commerce component for MODX 3
+categories: catalog
+popular: true
+logo: https://modstore.pro/assets/extras/minishop3/logo.png
+author: biz87
+repository: https://github.com/modx-pro/MiniShop3
+
+compatibility:
+  - modx3
+  - php81
+items: [
+  { text: 'Quick start', link: 'quick-start' },
+  { text: 'Differences from miniShop2', link: 'differences-from-ms2' },
+  { text: 'System settings', link: 'settings' },
+  {
+    text: 'Snippets',
+    link: 'snippets/',
+    items: [
+      { text: 'msProducts', link: 'snippets/msproducts' },
+      { text: 'msCart', link: 'snippets/mscart' },
+      { text: 'msOrder', link: 'snippets/msorder' },
+      { text: 'msGetOrder', link: 'snippets/msgetorder' },
+      { text: 'msGallery', link: 'snippets/msgallery' },
+      { text: 'msOptions', link: 'snippets/msoptions' },
+      { text: 'msProductOptions', link: 'snippets/msproductoptions' },
+      { text: 'msCustomer', link: 'snippets/mscustomer' },
+      { text: 'msOrderTotal', link: 'snippets/msordertotal' },
+    ],
+  },
+  { text: 'Plugins', link: 'development/events/plugins-guide' },
+  {
+    text: 'Manager interface',
+    items: [
+      { text: 'Orders', link: 'interface/orders' },
+      { text: 'Customers', link: 'interface/customers' },
+      { text: 'Category', link: 'interface/category' },
+      { text: 'Product', link: 'interface/product' },
+      { text: 'Gallery', link: 'interface/gallery' },
+      { text: 'Notification center', link: 'interface/notifications' },
+      {
+        text: 'Settings',
+        link: 'interface/settings',
+        items: [
+          { text: 'Deliveries', link: 'interface/settings/deliveries' },
+          { text: 'Payments', link: 'interface/settings/payments' },
+          { text: 'Order statuses', link: 'interface/settings/statuses' },
+          { text: 'Vendors', link: 'interface/settings/vendors' },
+          { text: 'Links', link: 'interface/settings/links' },
+          { text: 'Options', link: 'interface/settings/options' },
+        ],
+      },
+      {
+        text: 'Utilities',
+        link: 'interface/utilities',
+        items: [
+          { text: 'Gallery', link: 'interface/utilities/gallery' },
+          { text: 'Import', link: 'interface/utilities/import' },
+          { text: 'Product fields', link: 'interface/utilities/product-fields' },
+          { text: 'Extra fields', link: 'interface/utilities/extra-fields' },
+          { text: 'Grid columns', link: 'interface/utilities/grid-columns' },
+          { text: 'Model fields', link: 'interface/utilities/model-fields' },
+        ],
+      },
+    ],
+  },
+  {
+    text: 'Manager cookbooks',
+    link: 'manager/',
+    items: [
+      { text: 'Overview', link: 'manager/' },
+      { text: 'Custom order field', link: 'manager/examples/order-custom-field' },
+      { text: 'Custom product field', link: 'manager/examples/product-extra-field' },
+      { text: 'Extra fields', link: 'manager/extra-fields/cookbook' },
+      { text: 'Model fields', link: 'manager/model-fields/cookbook' },
+      { text: 'Product fields', link: 'manager/product-fields/cookbook' },
+      { text: 'Grid columns', link: 'manager/grid-config/cookbook' },
+    ],
+  },
+  {
+    text: 'Frontend interface',
+    items: [
+      { text: 'Catalog', link: 'frontend/catalog' },
+      { text: 'Product page', link: 'frontend/product' },
+      { text: 'Cart', link: 'frontend/cart' },
+      { text: 'Checkout', link: 'frontend/order' },
+      { text: 'Thank you for your order', link: 'frontend/thanks' },
+      {
+        text: 'Customer account',
+        items: [
+          { text: 'Login and registration', link: 'frontend/customer-auth' },
+          { text: 'Customer profile', link: 'frontend/customer-profile' },
+          { text: 'Shipping addresses', link: 'frontend/customer-addresses' },
+          { text: 'Order history', link: 'frontend/customer-orders' },
+        ],
+      },
+    ],
+  },
+  {
+    text: 'Development',
+    items: [
+      {
+        text: 'Events',
+        link: 'development/events',
+        items: [
+          { text: 'Plugin guide', link: 'development/events/plugins-guide' },
+          { text: 'Cart', link: 'development/events/cart' },
+          { text: 'Order', link: 'development/events/order' },
+          { text: 'Order model', link: 'development/events/order-model' },
+          { text: 'Order item', link: 'development/events/order-product' },
+          { text: 'Cost', link: 'development/events/cost' },
+          { text: 'Status', link: 'development/events/status' },
+          { text: 'Customer', link: 'development/events/customer' },
+          { text: 'Product', link: 'development/events/product' },
+          { text: 'Vendor', link: 'development/events/vendor' },
+          { text: 'Notifications', link: 'development/events/notifications' },
+          { text: 'Import', link: 'development/events/import' },
+          { text: 'msProducts', link: 'development/events/msproducts' },
+          { text: 'Manager', link: 'development/events/manager' },
+        ],
+      },
+      {
+        text: 'Web API',
+        link: 'development/api',
+        items: [
+          { text: 'Overview', link: 'development/api' },
+          { text: 'Reference', link: 'development/web-api/' },
+          { text: 'Authorization', link: 'development/web-api/auth' },
+          { text: 'Endpoint map', link: 'development/web-api/endpoints' },
+          { text: 'Catalog', link: 'development/web-api/catalog' },
+          { text: 'Cart', link: 'development/web-api/cart' },
+          { text: 'Checkout', link: 'development/web-api/checkout' },
+          { text: 'Customer', link: 'development/web-api/customer' },
+          { text: 'Errors', link: 'development/web-api/errors' },
+          { text: 'CORS and rate limit', link: 'development/web-api/cors' },
+          { text: 'Examples', link: 'development/web-api/examples' },
+        ],
+      },
+      { text: 'API Router', link: 'development/routing' },
+      { text: 'JavaScript API', link: 'development/javascript' },
+      { text: 'Frontend JavaScript', link: 'development/frontend-js' },
+      { text: 'Product tabs', link: 'development/product-tabs-integration' },
+      { text: 'Order tabs', link: 'development/order-tabs-integration' },
+      { text: 'Scheduler', link: 'development/scheduler' },
+      { text: 'Models and database schema', link: 'development/models' },
+      { text: 'Service layer', link: 'development/services' },
+      {
+        text: 'Backend API',
+        link: 'development/backend-api/',
+        items: [
+          { text: 'Product API', link: 'development/backend-api/product' },
+          { text: 'Order API', link: 'development/backend-api/order' },
+          { text: 'Options API', link: 'development/backend-api/options' },
+          { text: 'Customer API', link: 'development/backend-api/customer' },
+        ],
+      },
+    ],
+  },
+]
+---
+# MiniShop3
+
+Modern e-commerce component for MODX 3, completely rewritten to leverage new platform capabilities.
+
+## Key features
+
+### For MODX 3
+
+MiniShop3 is designed specifically for MODX Revolution 3.x and takes full advantage of the new version:
+
+- **PHP 8.1+** — modern syntax, typing, attributes
+- **Namespaces** — all classes live in the `MiniShop3\` namespace
+- **PSR-4 autoloading** — via Composer
+- **Phinx migrations** — database schema versioning
+
+### Improved architecture
+
+```mermaid
+flowchart TB
+  store[Frontend snippets / JS]
+  api[api.php Web API /api/v1]
+  mgr[Vue manager]
+  mgrApi[Manager API /api/mgr]
+  core[MS3 services + xPDO]
+  store --> api --> core
+  mgr --> mgrApi --> core
+```
+
+- **Web API** — `api.php` (`/api/v1/*`) for frontend and headless: cart, checkout, account, catalog, delivery/payment. [Documentation](/en/components/minishop3/development/web-api/)
+- **Service Container** — dependencies via MODX DI container
+- **Vue 3 + PrimeVue** — modern Manager UI via [VueTools](/en/components/vuetools/)
+- **Modern frontend** — no jQuery, native JavaScript
+
+### Compatibility
+
+MiniShop3 maintains backward compatibility with miniShop2 at the level of:
+
+- Snippet names (`msProducts`, `msCart`, `msOrder`, etc.)
+- Main snippet parameters
+
+Model fields and placeholders differ: no `receiver`, order comment is `order_comment`, stock is `stock`, cart line key is `product_key`. Details: [Differences from miniShop2](/en/components/minishop3/differences-from-ms2).
+
+## System requirements
+
+| Requirement | Version |
+| --- | --- |
+| MODX Revolution | 3.0.0+ |
+| PHP | 8.1+ |
+| MySQL | 5.7+ / MariaDB 10.3+ |
+
+### MODX dependencies
+
+- **pdoTools 3.x** — for snippets and the Fenom template engine
+- **[VueTools](/en/components/vuetools/)** — Vue 3 and PrimeVue for the Manager interface
+- **[Scheduler](/en/components/scheduler/)** *(optional)* — for background tasks (import, notifications, cleanup)
+
+::: warning VueTools
+MiniShop3 uses Vue 3 for the modern Manager interface. The **[VueTools](/en/components/vuetools/)** package must be installed before or together with MiniShop3. If the package is missing, a message with installation instructions will be shown.
+:::
+
+### Composer libraries
+
+MiniShop3 uses the following PHP libraries (included in the package):
+
+| Library | Version | Purpose |
+| --- | --- | --- |
+| [nikic/fast-route](https://github.com/nikic/FastRoute) | ^1.3 | REST API routing |
+| [rakit/validation](https://github.com/rakit/validation) | ^1.4 | Form and API data validation |
+| [intervention/image](https://image.intervention.io/) | ^3.0 | Image processing (resize, watermarks) |
+| [robmorgan/phinx](https://phinx.org/) | ^0.16 | Database migrations |
+| [ramsey/uuid](https://uuid.ramsey.dev/) | ^4.7 | UUID generation for tokens |
+
+## Installation
+
+### Method 1: Via package manager (recommended)
+
+Standard installation via the MODX package manager with repositories enabled:
+
+1. Go to **Extras → Installer**
+2. Click **Download Extras**
+3. Install **[VueTools](/en/components/vuetools/)** (if not already installed)
+4. Find **MiniShop3** in the list of available packages
+5. Click **Download** and then **Install**
+
+The package is available in [modx.com](https://modx.com/extras/) and [modstore.pro](https://modstore.pro/) repositories.
+
+### Method 2: Upload transport package
+
+If repositories are unavailable or you need a specific version:
+
+1. Download the transport package from the [GitHub releases](https://github.com/modx-pro/MiniShop3/releases) page
+2. Upload the `.transport.zip` file to `/core/packages/` of your site
+3. Go to **Extras → Installer**
+4. Click **Search locally for packages**
+5. Find MiniShop3 in the list and click **Install**
+
+### Method 3: Installation from source (for developers)
+
+This method is for developers who need the latest changes:
+
+::: tip Prerequisites
+Before installing MiniShop3, make sure the **[VueTools](/en/components/vuetools/)** package is installed on the site. It provides Vue 3 and PrimeVue via import maps.
+:::
+
+```bash
+# Clone the repository
+git clone https://github.com/modx-pro/MiniShop3.git
+cd MiniShop3
+
+# Install PHP dependencies
+composer install
+
+# Build Vue widgets (requires Node.js 18+)
+cd vueManager
+npm install
+npm run build
+cd ..
+
+# Build and install the component
+# Open _build/build.php in the browser or run:
+php _build/build.php
+```
+
+After installation, go to **Extras → MiniShop3** to configure the store.
+
+A detailed initial setup guide is on the [Quick start](quick-start) page.
+
+## Component structure
+
+### Core (core/components/minishop3/)
+
+```
+core/components/minishop3/
+├── bootstrap.php           # Component initialization
+├── config/
+│   ├── routes/             # REST API routes
+│   ├── mgr/                # Manager configuration
+│   ├── combos/             # Manager comboboxes
+│   ├── filters/            # Grid filters
+│   └── ms3.services.d/     # Custom services
+├── controllers/            # Manager page controllers
+├── elements/
+│   ├── snippets/           # Snippets (msProducts, msCart, msOrder...)
+│   ├── chunks/             # Chunks (Fenom templates)
+│   ├── plugins/            # MODX plugins
+│   ├── tasks/              # Scheduler tasks
+│   └── templates/          # Email templates
+├── lexicon/                # Lexicon files (en, ru)
+├── migrations/             # Phinx migrations
+├── schema/                 # xPDO database schema
+├── seeds/                  # Database seeds
+├── src/
+│   ├── Controllers/        # Business logic (Cart, Order, Customer)
+│   ├── Model/              # xPDO models
+│   ├── Processors/         # AJAX processors (namespace MiniShop3\Processors\*)
+│   ├── Services/           # Services (Format, AuthManager...)
+│   ├── Notifications/      # Notification system
+│   ├── Router/             # API router
+│   ├── Middleware/         # API middleware
+│   ├── Utils/              # Utilities (ImportCSV...)
+│   ├── MiniShop3.php       # Main component class
+│   └── ServiceRegistry.php # Service registry
+└── vendor/                 # Composer dependencies
+```
+
+### Frontend (assets/components/minishop3/)
+
+```
+assets/components/minishop3/
+├── api.php                 # REST API entry point
+├── connector.php           # Manager AJAX connector
+├── js/
+│   ├── mgr/                # Manager JS (Vue bundles + legacy Ext resource)
+│   └── web/                # Site JavaScript (native JS)
+├── css/
+│   ├── mgr/                # Manager styles
+│   └── web/                # Site styles
+├── img/                    # Images
+├── payment/                # Payment system handlers
+└── plugins/                # JavaScript plugins
+```

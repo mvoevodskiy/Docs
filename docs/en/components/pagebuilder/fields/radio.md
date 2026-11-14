@@ -1,0 +1,104 @@
+---
+title: "radio"
+description: "Single value from options shown as radio buttons"
+---
+
+# Field radio
+
+Version: **Free**.
+
+<!-- ![radio](/components/pagebuilder/screenshots/fields/radio.jpg) -->
+
+## Why this type
+
+Every choice is visible. You do not open a dropdown. The `options` list is the same as [select](select). It fits two to five choices when only one can be picked.
+
+## When to use
+
+- Alignment left / center / right
+- Background type image / color / video
+- Small labeled choice sets
+
+## Tips
+
+Long lists belong in [select](select). Simple on/off is faster with [yesno](yesno) or [toggle](toggle).
+
+## Similar types
+
+- [select](select) for long static lists
+- [checkboxgroup](checkboxgroup) for multiple flags
+
+## Schema
+
+```json
+{
+  "name": "align",
+  "type": "radio",
+  "label": "Alignment",
+  "options": [
+    {
+      "label": "Left",
+      "value": "left"
+    },
+    {
+      "label": "Center",
+      "value": "center"
+    }
+  ],
+  "tab": "Content",
+  "width": 100,
+  "active": true
+}
+```
+
+## Value
+
+Selected option `value` string.
+
+## Section data {#output-in-section-data}
+
+Key `align` in the section data: selected option `value` string:
+
+```json
+{
+  "align": "lg"
+}
+```
+
+## Chunk example
+
+::: code-group
+
+```modx
+<div class="align-[[+align]]">
+  …
+</div>
+```
+
+```fenom
+<div class="align-{$align|escape}">
+  …
+</div>
+```
+
+:::
+
+## Common properties
+
+For fields with `name` that are stored in the section data:
+
+| Key | Type | Role | CMP |
+| --- | --- | --- | --- |
+| `tab` | string | Group subtitle in the inspector | yes |
+| `width` | 25, 33, 50, 66, 75, 100 | Field width as % of the row (flex). The CMP offers only these values | yes |
+| `description` | string | Hint under the label | yes |
+| `default` | any | Initial value for a new section | yes |
+| `active` | bool | `false` hides the field in the inspector | yes |
+| `required` | bool | Required on **publish** (draft still saves) | yes |
+
+See [fields overview](overview#obshchie-svoystva-polya).
+
+## See also
+
+- [Field types reference](types)
+- [Fields overview](overview)

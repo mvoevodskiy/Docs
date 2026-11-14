@@ -1,0 +1,119 @@
+---
+title: Вывод на сайте
+description: Шаблон, CSS, Fenom chunks секций, кеш и превью черновика
+---
+
+# Вывод на сайте
+
+## Шаблон
+
+<!-- ![Страница с секциями на сайте](/components/pagebuilder/screenshots/fe-page-sections.jpg) -->
+
+Сниппет `PageBuilder` вставляют в шаблон или в поле content. Вызов некэшированный:
+
+::: code-group
+
+```modx
+[[!PageBuilder]]
+```
+
+```fenom
+{'!PageBuilder' | snippet}
+```
+
+:::
+
+Опубликованные секции отрисовываются через Fenom chunks в `core/components/pagebuilder/elements/chunks/`. Имя chunk совпадает с полем `chunk` в JSON типа: `pagebuilder_hero`, `pagebuilder_cta`, для Pro — `pagebuilderpro_{key}`. `FenomSectionRenderer` буферизует вывод чанка: exception FetchIt или Fenom не оставляет обрезанный HTML на странице.
+
+## CSS
+
+По умолчанию сниппет регистрирует:
+
+- `pagebuilder-sections.css`: базовые стили секций Free
+- `pagebuilder-sections.js` — вместе с CSS, если файл есть в пакете (карусели и вкладки по маркерам DOM)
+- `pagebuilder-qa.css` — если на странице есть QA-секции (или `` &qa_css=`1` ``)
+
+Отключить глобально: `pagebuilder_load_frontend_css = 0`. На одном вызове: `` &load_css=`0` ``.
+
+Обёртка страницы `<div class="pb-page">` управляется `wrap_page` (по умолчанию совпадает с `load_css`).
+
+Токены, BEM и Fenom-оболочка: [Дизайн-система](design-system).
+
+## Кеш HTML
+
+Параметр `use_cache=1` (по умолчанию) кеширует итоговый HTML в MODX. После публикации секций сбросьте кеш сайта или временно вызовите с `use_cache=0`.
+
+События `pbOnBeforeRenderDocument` и `pbOnBeforeRenderSection` вызываются только при промахе кеша.
+
+## Фильтр секций
+
+Параметр `section_types` ограничивает вывод списком ключей:
+
+::: code-group
+
+```modx
+[[!PageBuilder? &section_types=`hero,cta`]]
+```
+
+```fenom
+{'!PageBuilder' | snippet : ['section_types' => 'hero,cta']}
+```
+
+:::
+
+Если нужны фрагменты страницы в разных местах шаблона.
+
+## JSON вместо HTML
+
+`return_values=1` возвращает JSON с извлечёнными значениями полей (`plainText`, структура `sections`). Срабатывает `pbOnGetValues`.
+
+## Видимость секций {#vidimost-sekcij}
+
+В `settings` секции можно задать:
+
+- `contexts`: список ключей контекста MODX. Сверяется с контекстом запроса. Ключ HTML-кеша тоже содержит этот контекст, поэтому попадание в кеш не подставляет HTML другого контекста
+- `utm`: правила по UTM из `$_SESSION['utm']` после [PageBuilderUtmSession](snippets/PageBuilderUtmSession)
+
+В Pro при флаге `conditions` добавляется `settings.conditions`. Типы: `loggedIn`, `guest`, `context`, `get`, `resource`, `template`. Неизвестный `type` секцию не прячет. Проверка идёт через `SectionVisibility` и событие `pbOnCheckSectionVisibility`.
+
+Секция не попадает в HTML, если правило не выполнено.
+
+В менеджере эти блоки открывает диалог **Видимость** (`pagebuilder_inspector_visibility_enabled`). См. [Рабочий процесс](workflow#vidimost).
+
+## Responsive на сайте {#responsive}
+
+При `pagebuilder_responsive_apply=manual` (по умолчанию) на сайт уходит одно значение breakpoint: query `?pb_bp=` или `pagebuilder_default_breakpoint`.
+
+При `css` в HTML попадают все значения. Pro-отрисовка оборачивает их в `<span class="pb-rv">` с `data-pb-bp`, стили media query подключаются автоматически. В chunk для таких полей:
+
+```fenom
+{$title|pb_text}
+```
+
+`pb_text` пропускает разметку `.pb-rv` и экранирует обычный текст. Не заменяйте его на `|escape`, иначе сломается CSS-режим.
+
+Схема поля и JSON: [Обзор полей → responsive](fields/overview#pro-responsive). Настройки: [Системные настройки → Responsive](settings#responsive).
+
+## Превью черновика {#prevyu-chernovika}
+
+Публичный сайт показывает только опубликованную версию. Черновик смотрят через менеджер (кнопка Preview) или URL:
+
+`{assets_url}components/pagebuilder/preview.php`
+
+Токен подписывается `pagebuilder_preview_secret`. В iframe подключаются CSS шаблона (`pagebuilder_preview_include_template_css`) и список из `pagebuilder_preview_css_urls`.
+
+<!-- ![Превью черновика](/components/pagebuilder/screenshots/mgr-section-preview.jpg) -->
+
+## Свои chunks
+
+1. Скопируйте chunk секции в категорию темы.
+2. Измените Fenom-разметку, сохраните имя или переопределите mapping в plugin на `pbOnBeforeRenderSection`.
+
+Plugin может подменить секцию до отрисовки chunk через `SectionRenderPipeline::replaceSection()`.
+
+## Связанные страницы
+
+- [Сниппет PageBuilder](snippets/PageBuilder)
+- [Дизайн-система](design-system)
+- [Каталог секций](sections/)
+- [События отрисовки](integration#рендер-на-фронте)

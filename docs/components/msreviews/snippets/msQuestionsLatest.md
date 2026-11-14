@@ -1,0 +1,128 @@
+---
+title: msQuestionsLatest
+description: Последние вопросы с ответами для главной и FAQ-блоков msReviews
+---
+
+# Сниппет msQuestionsLatest
+
+Последние вопросы с ответами по области. По умолчанию только FAQ (`faqOnly=1`).
+
+## Назначение
+
+Главная, лендинг, блог. JSON-LD **не** выводится. На карточке — [msQuestions](msQuestions), не этот сниппет.
+
+С **1.2.1** при `showProduct=1` заголовок и URL — из любого опубликованного `site_content`, не только `msProduct`.
+
+## Где вызывать
+
+- Шаблон **главной**, страницы с FAQ-виджетом.
+- Scope через `parents` или `productIds`, как у [msReviewsLatest](msReviewsLatest).
+
+## Зависимости
+
+- **MiniShop3**, **msReviews**
+- **pdoTools 3.0+** — чанки на Fenom. Для пагинации нужна обёртка `pdoPage`
+
+## Параметры
+
+| Параметр | По умолчанию | Описание |
+| --- | --- | --- |
+| `limit` | `10` | Записей (1–50) |
+| `offset` | `0` | Пропуск. При вызове из `pdoPage` передаётся обёрткой автоматически |
+| `totalVar` | `page.total` | Плейсхолдер total для `pdoPage` |
+| `parents` | *(пусто)* | CSV id категорий, не больше 50. Под ними до 2000 документов. Пусто — весь магазин |
+| `productIds` | *(пусто)* | CSV id товаров, не больше 2000. Приоритет над `parents` |
+| `faqOnly` | `1` | Только вопросы с опубликованным ответом |
+| `sortDir` | `DESC` | `DESC` или `ASC` (с **1.2.4**) |
+| `showProduct` | `1` | Ссылка на ресурс в карточке |
+| `dateFormat` | *(настройка)* | Формат даты |
+| `hideEmpty` | `0` | Пустой вывод без вопросов |
+| `viewAllUrl` | *(пусто)* | Ссылка «Смотреть все» в футере |
+| `tpl` | `tplQuestionLatestItem` | Чанк карточки |
+| `wrapper` | `tplQuestionsLatestList` | Чанк-обёртка |
+| `registerCss` | `1` | Подключать `reviews.css` этим вызовом |
+| `registerJs` | `1` | Не влияет на JS: регистрируется только CSS |
+
+## FAQ на главной
+
+::: code-group
+
+```fenom
+{set $catalog_id = ('ms3_page_id_catalog' | option) ?: ('site_start' | option)}
+{'!msQuestionsLatest' | snippet : [
+  'limit' => 5,
+  'parents' => $catalog_id,
+  'faqOnly' => 1,
+  'showProduct' => 1,
+  'hideEmpty' => 1,
+  'viewAllUrl' => ($catalog_id | url)
+]}
+```
+
+```modx
+[[!msQuestionsLatest?
+  &limit=`5`
+  &parents=`[[++ms3_page_id_catalog]]`
+  &faqOnly=`1`
+  &showProduct=`1`
+  &hideEmpty=`1`
+  &viewAllUrl=`[[~[[++ms3_page_id_catalog]]]]`
+]]
+```
+
+:::
+
+## Все опубликованные вопросы (без ответа)
+
+::: code-group
+
+```fenom
+{'!msQuestionsLatest' | snippet : [
+  'limit' => 8,
+  'faqOnly' => 0,
+  'hideEmpty' => 1
+]}
+```
+
+```modx
+[[!msQuestionsLatest? &limit=`8` &faqOnly=`0` &hideEmpty=`1`]]
+```
+
+:::
+
+## Конкретные товары
+
+::: code-group
+
+```fenom
+{'!msQuestionsLatest' | snippet : [
+  'productIds' => '12,34,56',
+  'limit' => 5,
+  'faqOnly' => 1,
+  'viewAllUrl' => '/catalog/'
+]}
+```
+
+```modx
+[[!msQuestionsLatest?
+  &productIds=`12,34,56`
+  &limit=`5`
+  &faqOnly=`1`
+  &viewAllUrl=`/catalog/`
+]]
+```
+
+:::
+
+Чанки: `tplQuestionsLatestList`, `tplQuestionLatestItem` — [Чанки](../chunks). В `tplQuestionLatestItem` с **1.2.4** доступен `{$idx}`: номер строки с 1 с учётом `offset`.
+
+## Пагинация
+
+Обёртка `pdoPage` с `element=msQuestionsLatest`. См. [Интеграция — пагинация](../integration#пагинация-pdopage), [msQuestions](msQuestions#пагинация-q-a).
+
+## См. также
+
+- [msQuestions](msQuestions) — Q&A на странице товара
+- [msReviewsLatest](msReviewsLatest)
+- [Интеграция — главная](../integration)
+- [FAQ](../faq)

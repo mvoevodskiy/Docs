@@ -1,0 +1,82 @@
+---
+title: "multiselect"
+description: "Массив значений из статического списка options через MultiSelect"
+---
+
+# Поле multiselect
+
+Версия: **Free**.
+
+<!-- ![multiselect](/components/pagebuilder/screenshots/fields/multiselect.jpg) -->
+
+## Зачем этот тип
+
+Несколько значений из готового списка `options`, с поиском в выпадающем списке. Список вариантов устроен так же, как у [select](select).
+
+## Когда использовать
+
+- Несколько theme-тегов из фиксированного списка
+- Флаги из enum без [checkboxgroup](checkboxgroup)
+- Несколько значений без xPDO
+
+## Советы
+
+Динамический список из БД: [tablemulticombo](tablemulticombo). Короткий список на экране: [checkboxgroup](checkboxgroup).
+
+## Похожие типы
+
+- [select](select) для одного статического значения
+- [multicombo](multicombo) для optionsSource xPDO
+
+## Настройка
+
+```json
+{
+  "name": "roles",
+  "type": "multiselect",
+  "label": "Роли",
+  "options": [],
+  "tab": "Контент",
+  "width": 100,
+  "active": true
+}
+```
+
+## Данные секции {#vyvod-v-section-data}
+
+Ключ `roles` — массив значений:
+
+```json
+{
+  "roles": [
+    "admin",
+    "editor"
+  ]
+}
+```
+
+## Пример в chunk
+
+::: code-group
+
+```modx
+<span class="role">[[+roles.0]]</span>
+```
+
+```fenom
+{foreach $roles as $role}
+  <span class="role">{$role|pb_text}</span>
+{/foreach}
+```
+
+:::
+
+## Общие свойства
+
+Подробнее: [обзор полей](overview#общие-свойства-поля).
+
+## Дальше
+
+- [Справочник типов](types)
+- [Обзор полей](overview)
+- [Менеджер и события](../integration)

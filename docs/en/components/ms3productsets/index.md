@@ -1,0 +1,100 @@
+---
+title: ms3ProductSets
+description: Dynamic product recommendations for MiniShop3. Manual links, auto rules, manager templates
+categories: catalog
+author: Ibochkarev
+logo: https://modstore.pro/assets/extras/ms3productsets/logo.png
+modstore: https://modstore.pro/packages/ecommerce/ms3productsets
+
+compatibility:
+  - modx3
+  - php81
+  - minishop3
+items: [
+  { text: 'Quick start', link: 'quick-start' },
+  { text: 'Manager scenarios', link: 'interface/flows' },
+  { text: 'System settings', link: 'settings' },
+  { text: 'Set types', link: 'types' },
+  {
+    text: 'Snippets',
+    link: 'snippets',
+    items: [
+      { text: 'ms3ProductSets', link: 'snippets/ms3ProductSets' },
+      { text: 'mspsLexiconScript', link: 'snippets/mspsLexiconScript' },
+    ],
+  },
+  { text: 'Frontend setup', link: 'frontend' },
+  { text: 'Integration and customization', link: 'integration' },
+  {
+    text: 'Manager interface',
+    link: 'interface',
+    items: [
+      { text: 'Interface overview', link: 'interface' },
+      { text: 'Product sets', link: 'interface/templates' },
+      { text: 'Manager guide', link: 'admin' },
+      { text: 'Permissions', link: 'permissions' },
+    ],
+  },
+  {
+    text: 'For developers',
+    link: 'api',
+    items: [
+      { text: 'Contracts and parameters (API)', link: 'api' },
+      { text: 'Flows and scenarios', link: 'flows' },
+      { text: 'Architecture', link: 'architecture' },
+    ],
+  },
+]
+---
+# ms3ProductSets
+
+ms3ProductSets adds recommendation blocks to [MiniShop3](/en/components/minishop3/): “Frequently bought together”, similar products, VIP sets, cart suggestions. Manual links come first (TVs on the product and manager templates). When they are empty and `auto_recommendation` is 1, auto logic for the type runs. `vip` does not read that setting.
+
+## Features
+
+- **Set types:** `buy_together`, `similar`, `popcorn`, `cart_suggestion`, `auto_sales`, `vip`, `auto`. Aliases `also-bought` / `cross-sell` use `buy_together` auto logic. `custom` uses `auto`. See [set types](/en/components/ms3productsets/types).
+- **Manual mode:** table `ms3_product_sets`, TVs `ms3productsets_*`, bulk **template** apply to categories in the manager.
+- **Auto mode:** picks by category, similar products, and order stats (`auto_sales`) when **`auto_recommendation=1`**. VIP fallback from `ms3productsets.vip_set_*` does not read that setting. See [system settings](/en/components/ms3productsets/settings).
+- **Site output:** snippet **`ms3ProductSets`**. Optional AJAX via **`get_set`** and **`window.ms3ProductSets.render()`**. See [API](/en/components/ms3productsets/api) and [integration](/en/components/ms3productsets/integration).
+- **Cache:** TTL from **`ms3productsets.cache_lifetime`**. **`0`** disables cache. See [system settings](/en/components/ms3productsets/settings).
+- **Cart:** stock cards use MiniShop3 `ms3_form`. `productsets.js` hits MiniShop3 Web API first. Connector `add_to_cart` is the fallback. “Add whole set” is **`data-add-set`**.
+- **Manager UI:** **Components → Product sets** (VueTools + PrimeVue): templates, apply to categories, unbind. See [manager guide](/en/components/ms3productsets/admin) and [interface](/en/components/ms3productsets/interface/index).
+- **Plugins:** sync TVs to the DB on product save. Clean links when a resource is deleted. See [architecture](/en/components/ms3productsets/architecture).
+- **Localization:** component lexicon. On the frontend use **`mspsLexiconScript`** (`window.mspsLexicon`, `window.mspsConfig`).
+
+## System requirements
+
+| Requirement | Version |
+|-------------|---------|
+| MODX Revolution | 3.0+ |
+| PHP | 8.1+ |
+| MySQL | 5.7+ / MariaDB 10.3+ |
+
+### Dependencies
+
+- **[MiniShop3](/en/components/minishop3/)**: products and categories
+- **[pdoTools](/en/components/pdotools/) 3.0.0+**
+- **VueTools**: “Product sets” manager page
+
+## Installation
+
+Encrypted transport needs provider [modstore.pro/extras](https://modstore.pro/extras/). Without it install fails with `Package provider not found`.
+
+Steps, requirements, and ModStore download: [Quick start](/en/components/ms3productsets/quick-start).
+
+### After installation
+
+Load **`mspsLexiconScript`**, **`productsets.css`** and **`productsets.js`**. Add **`ms3ProductSets`** to the product or landing template. Limits and cache: [system settings](/en/components/ms3productsets/settings), namespace **`ms3productsets`**.
+
+Storefront wiring: [Frontend setup](/en/components/ms3productsets/frontend).
+
+## Terms
+
+| Term | Description |
+|------|-------------|
+| **Set** | Recommended product list for a context (`resource_id`, type, category) |
+| **Set type** | Logic mode: `buy_together`, `similar`, `vip`, etc. |
+| **Manual links** | Rows in **`ms3_product_sets`** (and/or TV values) defined by a manager |
+| **Set template** | Row in **`ms3_product_set_templates`** for bulk apply to categories |
+| **Auto recommendations** | ID selection without manual links (category, orders, catalog) |
+| **VIP set** | Type **`vip`**. Without manual links, fallback from **`vip_set_{set_id}`** |

@@ -1,0 +1,98 @@
+---
+title: ms3Pulse
+description: Дашборд продаж и аналитика для MiniShop3 — метрики, графики, экспорт и отчёты по расписанию
+author: Ibochkarev
+logo: https://modstore.pro/assets/extras/ms3pulse/logo.png
+modstore: https://modstore.pro/packages/other/ms3pulse
+dependencies: [miniShop3, vuetools]
+categories: other
+
+compatibility:
+  - modx3
+  - php81
+  - minishop3
+  - vue3
+items: [
+  { text: 'Быстрый старт', link: 'quick-start' },
+  { text: 'Системные настройки', link: 'settings' },
+  {
+    text: 'Интерфейс',
+    link: 'interface',
+    items: [
+      { text: 'Дашборд', link: 'interface/dashboard' },
+      { text: 'Конструктор графиков', link: 'interface/builder' },
+      { text: 'Топы и флопы', link: 'interface/topflops' },
+      { text: 'Настройки', link: 'interface/settings' },
+    ],
+  },
+  {
+    text: 'Метрики и графики',
+    link: 'metrics-and-charts',
+    items: [
+      { text: 'Метрики и показатели', link: 'metrics-and-charts/metrics' },
+      { text: 'Фильтры и период', link: 'metrics-and-charts/filters' },
+      { text: 'Типы графиков', link: 'metrics-and-charts/chart-types' },
+      { text: 'Источники данных', link: 'metrics-and-charts/data-sources' },
+    ],
+  },
+  { text: 'Сценарии (flows)', link: 'interface/flows' },
+  { text: 'Экспорт', link: 'export' },
+  { text: 'Отчёты по расписанию', link: 'scheduled-reports' },
+  { text: 'Права доступа', link: 'permissions' },
+  { text: 'FAQ', link: 'faq' },
+  { text: 'Решение проблем', link: 'troubleshooting' },
+]
+---
+# ms3Pulse
+
+Дашборд продаж и аналитика для [MiniShop3](/components/minishop3/): метрики за период, графики на Apache ECharts 6, конструктор своих графиков, таблицы «Топы / Флопы», экспорт в CSV/PNG и отчёты на email по расписанию.
+
+## Возможности
+
+- **Метрики** — выручка, заказы, средний чек, товары, доставка, оплата. Сравнение с предыдущим периодом
+- **Графики** — 15 типов (линия, столбцы, круговая, воронка, дерево и др.), 5 источников данных
+- **Конструктор графиков** — добавление своих графиков на вкладки «Динамика» и «Товары»
+- **Конструктор таблиц** — 6 типов таблиц (топ/флоп товаров, по статусам, доставке, оплате, выручка по дням)
+- **Фильтры** — период (от/до), статусы заказов MiniShop3, группировка по дням/неделям/месяцам
+- **Экспорт** — CSV таблиц, PNG графиков
+- **Отчёты по расписанию** — отправка CSV на email через [Scheduler](/components/scheduler/)
+
+## Системные требования
+
+| Требование | Версия |
+|------------|--------|
+| MODX Revolution | 3.0.0+ |
+| PHP | 8.1+ |
+| MySQL | 5.7+ / MariaDB 10.3+ |
+
+### Зависимости
+
+- **[MiniShop3](/components/minishop3/)** — источник данных (заказы, товары, статусы, доставки, оплаты)
+- **[VueTools](/components/vuetools/) 1.1.1** — Vue 3 и PrimeVue для интерфейса дашборда
+- **[Scheduler](/components/scheduler/)** *(опционально)* — для отчётов по расписанию
+
+## Установка
+
+### Через ModStore
+
+1. [Подключите репозиторий ModStore](https://modstore.pro/info/connection)
+2. Перейдите в **Extras → Installer** и нажмите **Download Extras**
+3. Убедитесь, что установлены **MiniShop3** и **VueTools 1.1.1**
+4. Найдите **ms3Pulse** в списке и нажмите **Download**, затем **Install**
+5. **Управление → Очистить кэш**
+
+Пакет доступен в каталоге [modstore.pro](https://modstore.pro/).
+
+### После установки
+
+**Компоненты → ms3Pulse** — откроется дашборд. В подменю: **Конструктор** (билдер графиков) и **Настройки**.
+
+Подробнее: [Быстрый старт](quick-start).
+
+## Термины
+
+| Термин | Описание |
+|--------|----------|
+| **Дашборд** | Главная страница с метриками, фильтрами и вкладками с графиками |
+| **Конструктор графиков (билдер)** | Страница добавления кастомных графиков на вкладки «Динамика» и «Товары» |
+| **Конструктор данных** | Вкладка «Топы / Флопы» с настраиваемыми таблицами |

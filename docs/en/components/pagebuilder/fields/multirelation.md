@@ -1,0 +1,104 @@
+---
+title: "multirelation"
+description: "Array of resources with id and pagetitle from picker modal"
+---
+
+# Field multirelation
+
+Version: **Pro**.
+
+<!-- ![multirelation](/components/pagebuilder/screenshots/fields/multirelation.jpg) -->
+
+## Why this type
+
+The order of the picked records is kept. Search uses the same window as [relation](relation). Sections such as a hand-picked product list are built on this field.
+
+## When to use
+
+- Product picks by exact SKU list
+- Related articles or case studies
+- Multiple internal links with titles
+
+## Tips
+
+Single resource fits [relation](relation). Static ids without picker possible via combo but no pagetitle enrich.
+
+## Similar types
+
+- [relation](relation) for one resource
+- [resourcelist](resourcelist) when schema uses alias naming
+
+## Schema
+
+```json
+{
+  "name": "products",
+  "type": "multirelation",
+  "label": "Products",
+  "tab": "Content",
+  "width": 100,
+  "active": true
+}
+```
+
+## Value
+
+Array of resources.
+
+## Section data {#output-in-section-data}
+
+Key `products` in the section data: array of resources:
+
+```json
+{
+  "products": [
+    {
+      "id": 10,
+      "pagetitle": "Product A"
+    },
+    {
+      "id": 11,
+      "pagetitle": "Product B"
+    }
+  ]
+}
+```
+
+## Chunk example
+
+::: code-group
+
+```modx
+{foreach $products as $p}
+  <span class="related">{$p.pagetitle}</span>
+{/foreach}
+```
+
+```fenom
+{foreach $products as $p}
+  <span class="related">{$p.pagetitle|pb_text}</span>
+{/foreach}
+```
+
+:::
+
+## Common properties
+
+For fields with `name` that are stored in the section data:
+
+| Key | Type | Role | CMP |
+| --- | --- | --- | --- |
+| `tab` | string | Group subtitle in the inspector | yes |
+| `width` | 25, 33, 50, 66, 75, 100 | Field width as % of the row (flex). The CMP offers only these values | yes |
+| `description` | string | Hint under the label | yes |
+| `default` | any | Initial value for a new section | yes |
+| `active` | bool | `false` hides the field in the inspector | yes |
+| `required` | bool | Required on **publish** (draft still saves) | yes |
+
+See [fields overview](overview#obshchie-svoystva-polya).
+
+## See also
+
+- [Field types reference](types)
+- [Fields overview](overview)
+- [Pro in manager](../integration)

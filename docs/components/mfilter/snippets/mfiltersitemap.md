@@ -1,0 +1,301 @@
+# mFilterSitemap
+
+Сниппет выводит отдельную карту сайта (`<urlset>`) с адресами страниц фильтров. Подключите её в индексный файл рядом с основной картой — см. [Интеграцию с pdoSitemap](#integraciya-s-pdositemap).
+
+## Описание
+
+**Что попадает в карту:**
+
+- адреса значений, у которых в разделе есть товары; пустые, снятые с публикации и удалённые разделы пропускаются;
+- для ключей вне текстового индекса — числа, диапазоны, свои типы — все слаги без проверки товаров;
+- одиночные фильтры, а при `maxFilters = 2` — и пары.
+
+Адрес в карте — `site_url` и путь фильтра. Протокол берётся из запроса к карте: если карту открыли по `http` или собрали из консоли (cron), адреса начнутся с `http://`.
+
+Начало карты при `maxFilters = 2`: два одиночных адреса и адрес пары фильтров.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url>
+    <loc>https://example.com/bytovaya-tehnika/sdelano_v--vetnam/</loc>
+    <lastmod>2026-01-18T12:17:23+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+</url>
+<url>
+    <loc>https://example.com/bytovaya-tehnika/sdelano_v--germaniya/</loc>
+    <lastmod>2026-01-18T12:17:23+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+</url>
+…
+<url>
+    <loc>https://example.com/bytovaya-tehnika/sdelano_v--vetnam/bezhevyj/</loc>
+    <lastmod>2026-01-18T12:17:23+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+</url>
+…
+</urlset>
+```
+
+::: warning `forceXML` и обычная страница
+По умолчанию сниппет отправляет XML-заголовок и завершает выполнение. Вызывайте его на отдельном ресурсе карты: в шаблоне обычной страницы вся страница станет XML.
+:::
+
+## Параметры
+
+### Выборка
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `parents` | авто | ID страниц с наборами фильтров через запятую. Пусто — все такие страницы. Дочерние разделы отдельно не обходятся; ресурс без набора пропускается, если не задан `filterKeys` |
+| `filterKeys` | все | Ключи фильтров через запятую. Применяются ко всем страницам, даже если ключа нет в их наборе |
+| `depth` | `10` | Глубина вложенных разделов при поиске товаров |
+| `maxFilters` | `1` | `1` — только одиночные фильтры, `2` — одиночные и пары, `0` — пустая карта. Значение больше `2` работает как `2` |
+
+### SEO-параметры
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `priority` | `0.7` | Приоритет URL, от `0.0` до `1.0` |
+| `changefreq` | `weekly` | Частота обновления: `always`, `hourly`, `daily`, `weekly`, `monthly`, `yearly`, `never` |
+
+### Чанки
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `tpl` | встроенный | Чанк одного URL |
+| `tplWrapper` | встроенный: `<urlset xmlns="{$schema}">` | Обёртка `<urlset>` |
+| `sitemapSchema` | `http://www.sitemaps.org/schemas/sitemap/0.9` | Схема XML |
+
+### Вывод
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `forceXML` | `true` | Отправить XML-заголовок и завершить выполнение |
+| `return` | `chunks` | `chunks` — XML; `data` — массив, ключ — адрес, поля `url`, `lastmod`, `changefreq`, `priority`, `filterKey`, `value`, `resourceId`. В режиме `data` `forceXML` не действует |
+
+### Кэширование
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `cache` | `true` | Включить кэширование. Кэшируется только XML (`return = chunks`) |
+| `cacheTime` | `3600` | Время жизни кэша, секунды |
+
+Адрес сайта и протокол в ключ кэша не входят: карта, собранная по запросу через `http`, отдаётся и по `https`, пока кэш не устареет.
+
+### Отладка
+
+| Параметр | По умолчанию | Описание |
+|----------|--------------|----------|
+| `debug` | `false` | Писать отладочные сообщения в журнал |
+
+## Переменные чанков
+
+### tpl
+
+| Переменная | Описание |
+|------------|----------|
+| `{$url}` | Полный URL страницы |
+| `{$lastmod}` | Дата последнего изменения раздела — ресурса с набором фильтров, ISO 8601. Одна на все адреса раздела |
+| `{$changefreq}` | Частота обновления |
+| `{$priority}` | Приоритет |
+| `{$filterKey}` | Ключ фильтра; у пары — два ключа через `+` |
+| `{$value}` | Исходное значение (не слаг); у пары — два значения через `+` |
+| `{$resourceId}` | ID раздела |
+
+### tplWrapper
+
+| Переменная | Описание |
+|------------|----------|
+| `{$output}` | Вывод `tpl` для всех адресов |
+| `{$schema}` | Схема XML |
+| `{$charset}` | Кодировка |
+| `{$total}` | Число адресов |
+
+## Примеры
+
+### Базовый вызов
+
+Создайте отдельный ресурс карты, например `/sitemap-mfilter.xml`, и вызовите сниппет в его шаблоне:
+
+```fenom
+{'!mFilterSitemap' | snippet}
+```
+
+Не называйте ресурс `sitemap-filters.xml`: файл с этим именем по умолчанию пишет в корень сайта [задача Scheduler](#scheduler-zadacha). Веб-сервер обычно отдаёт такой файл сам, и запрос до MODX не доходит.
+
+### Только определённые фильтры
+
+```fenom
+{'!mFilterSitemap' | snippet : [
+    'filterKeys' => 'color,size,vendor_id'
+]}
+```
+
+### Комбинации из двух фильтров
+
+```fenom
+{'!mFilterSitemap' | snippet : [
+    'maxFilters' => 2,
+    'priority' => '0.6'
+]}
+```
+
+При большом числе значений пар получится очень много — см. [Количество URL](#kolichestvo-url).
+
+### Для отдельных разделов
+
+```fenom
+{'!mFilterSitemap' | snippet : [
+    'parents' => '5,10,15',
+    'filterKeys' => 'color,vendor_id'
+]}
+```
+
+### XML в переменную
+
+```fenom
+{set $sitemapXml = '!mFilterSitemap' | snippet : [
+    'forceXML' => false
+]}
+
+{* Можно обработать или сохранить *}
+{$sitemapXml}
+```
+
+### Получение данных массивом
+
+```fenom
+{set $urls = '!mFilterSitemap' | snippet : [
+    'return' => 'data',
+    'forceXML' => false
+]}
+
+{if $urls is array}
+    Всего URL: {$urls | count}
+{/if}
+```
+
+Запись одиночного фильтра и пары при `maxFilters = 2`, вывод `{$urls | print}`:
+
+```
+Array
+(
+    [https://example.com/bytovaya-tehnika/sdelano_v--germaniya/] => Array
+        (
+            [url] => https://example.com/bytovaya-tehnika/sdelano_v--germaniya/
+            [lastmod] => 2026-01-18T12:17:23+00:00
+            [changefreq] => weekly
+            [priority] => 0.7
+            [filterKey] => made_in
+            [value] => Германия
+            [resourceId] => 152148
+        )
+
+    …
+
+    [https://example.com/bytovaya-tehnika/sdelano_v--vetnam/bezhevyj/] => Array
+        (
+            [url] => https://example.com/bytovaya-tehnika/sdelano_v--vetnam/bezhevyj/
+            [lastmod] => 2026-01-18T12:17:23+00:00
+            [changefreq] => weekly
+            [priority] => 0.7
+            [filterKey] => made_in+color
+            [value] => Вьетнам+Бежевый
+            [resourceId] => 152148
+        )
+
+    …
+)
+```
+
+Если на сайте нет страниц с фильтрами, сниппет вернёт строку XML, а не массив, — отсюда проверка `is array`.
+
+### Свои чанки: ссылки на языковые версии
+
+Тег `xhtml:link` требует объявить пространство имён `xhtml` в обёртке:
+
+```fenom
+{'!mFilterSitemap' | snippet : [
+    'tplWrapper' => '@INLINE <?xml version="1.0" encoding="{$charset}"?>
+<urlset xmlns="{$schema}" xmlns:xhtml="http://www.w3.org/1999/xhtml">{$output}</urlset>',
+    'tpl' => '@INLINE <url>
+    <loc>{$url | esc}</loc>
+    <lastmod>{$lastmod}</lastmod>
+    <xhtml:link rel="alternate" hreflang="ru" href="{$url | esc}"/>
+</url>'
+]}
+```
+
+## Scheduler-задача
+
+Задача `mfl_generate_sitemap` раз в сутки сохраняет карту в файл — по умолчанию `sitemap-filters.xml` в корне сайта. Если установлен Scheduler, задача ставится в очередь сама при установке и обновлении пакета.
+
+Код задачи — отдельная копия логики сниппета, и карта получается другой:
+
+- в неё попадают все значения фильтра, включая значения без товаров в разделе;
+- пары собираются из всех сочетаний значений;
+- задача работает из консоли, поэтому адреса начинаются с `http://` даже на сайте с https.
+
+Нужна карта, как у сниппета, — выводите её сниппетом на отдельном ресурсе.
+
+::: tip
+Параметры задачи и пример ручного запуска — в разделе [Scheduler-задачи → mfl_generate_sitemap](/components/mfilter/interface/scheduler#mfl_generate_sitemap).
+:::
+
+## Интеграция с robots.txt
+
+```
+Sitemap: https://example.com/sitemap.xml
+Sitemap: https://example.com/sitemap-mfilter.xml
+```
+
+## Интеграция с pdoSitemap
+
+Если основную карту выводит pdoSitemap, объедините обе карты индексным файлом:
+
+```
+/sitemap.xml          — pdoSitemap (основные страницы)
+/sitemap-mfilter.xml  — mFilterSitemap (фильтры)
+/sitemap-index.xml    — индексный файл
+```
+
+### sitemap-index.xml
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <sitemap>
+        <loc>https://example.com/sitemap.xml</loc>
+    </sitemap>
+    <sitemap>
+        <loc>https://example.com/sitemap-mfilter.xml</loc>
+    </sitemap>
+</sitemapindex>
+```
+
+## Рекомендации
+
+### Количество URL
+
+Сниппет не делит карту на части, а протокол sitemaps.org допускает не больше 50 000 URL в одном файле карты. При большом каталоге:
+
+- ограничьте `maxFilters` значением `1`;
+- разбейте карту на несколько вызовов с разными `parents`;
+- исключите редкие фильтры.
+
+### Приоритет и частота обновления
+
+Для фильтров рекомендуется `priority` 0.5–0.7. Значения для сравнения:
+
+| Страницы | `priority` |
+|----------|------------|
+| Главная | 1.0 |
+| Разделы | 0.8 |
+| Товары | 0.6 |
+| Фильтры | 0.5–0.7 |
+
+Для `changefreq` обычно подходит `weekly` или `monthly`: структура фильтров меняется нечасто.

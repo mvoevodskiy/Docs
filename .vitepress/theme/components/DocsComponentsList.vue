@@ -1,0 +1,154 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import type { ComponentData } from '../plugins/component'
+import type { DocsTheme } from '../types/index.ts'
+import { useData } from 'vitepress'
+
+import DocsSearchBar from './DocsSearchBar.vue'
+import DocsComponentCard from './DocsComponentCard.vue'
+
+const { site, frontmatter, localeIndex } = useData<DocsTheme.Config>()
+const props = defineProps<{
+  title?: string
+  dependency?: string
+  category?: string
+  excludeCategory?: string
+  search?: boolean
+}>()
+
+const query = ref<string>('')
+
+const components = computed<ComponentData[]>(() => {
+  let filtered: ComponentData[] = site.value.themeConfig.components ?? []
+
+  const { dependency, category, excludeCategory } = props
+
+  if (dependency) {
+    filtered = filtered.filter(component => component.dependencies?.includes(dependency))
+  }
+
+  if (category) {
+    filtered = filtered.filter(component => component.categories?.includes(category))
+  }
+
+  if (excludeCategory) {
+    filtered = filtered.filter(component => !component.categories?.includes(excludeCategory))
+  }
+
+  if (query.value) {
+    filtered = filtered.filter(component => component.title.toLowerCase().includes(query.value.replace(/\s/, '').toLowerCase()))
+  }
+
+  return filtered
+})
+
+const placeholder = computed(() => localeIndex.value === 'en' ? 'Search by name' : 'Поиск по названию')
+const emptyTitle = computed(() => localeIndex.value === 'en'
+  ? `No results were found for the query <b>"${query.value}"</b>`
+  : `По запросу <b>«${query.value}»</b> ничего не найдено`)
+const emptyText = computed(() => localeIndex.value === 'en'
+  ? 'Check if the query is written without errors'
+  : 'Проверьте написан ли запрос без ошибок')
+</script>
+
+<template>
+  <div class="DocsComponentsList" :class="{ 'is-page': frontmatter.layout === 'page' }">
+    <div class="container">
+      <h1 v-if="props.title" class="title">
+        {{ props.title }}
+      </h1>
+      <div v-if="search" class="filter">
+        <DocsSearchBar v-model.trim="query" :placeholder="placeholder" :backButton="!search" />
+      </div>
+      <div v-if="components.length" class="list" :class="{ slim: search }">
+        <DocsComponentCard v-for="component in components" :key="component.link" :component="component" />
+      </div>
+      <div v-else-if="search
+        && query.length
+        && !components.length
+      " class="empty">
+        <div class="empty-title" v-html="emptyTitle" />
+        <div class="empty-text" v-html="emptyText" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.DocsComponentsList {
+  margin-bottom: 96px;
+}
+
+@media (min-width: 768px) {
+  .DocsComponentsList {
+    margin-bottom: 128px;
+  }
+}
+
+.list {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(272px, auto));
+  gap: 24px;
+}
+
+.title {
+  max-width: 392px;
+  letter-spacing: -0.4px;
+  line-height: normal;
+  text-align: center;
+  font-size: 32px;
+  font-weight: bold;
+  white-space: pre-wrap;
+  margin: 2rem auto;
+}
+
+@media (min-width: 640px) {
+  .title {
+    max-width: 576px;
+    line-height: 56px;
+    font-size: 48px;
+  }
+}
+
+@media (min-width: 960px) {
+  .title {
+    line-height: 64px;
+    font-size: 56px;
+  }
+
+  .list {
+    grid-template-columns: repeat(auto-fit, minmax(350px, auto));
+  }
+
+  .list.slim {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.is-page.DocsComponentsList {
+  padding-inline: 24px;
+}
+
+.container {
+  margin: 0 auto;
+  width: 100%;
+  max-width: calc(var(--vp-layout-max-width) - 64px);
+}
+
+.empty {
+  padding-block: 40px;
+  text-align: center;
+  line-height: normal;
+}
+
+.empty-title {
+  display: block;
+  font-size: 1.5rem;
+}
+
+.empty-text {
+  display: block;
+  margin-top: 1rem;
+}
+</style>
